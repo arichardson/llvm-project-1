@@ -1,18 +1,18 @@
 ; RUN: %llc_dwarf -O0 -filetype=obj < %s > %t
 ; RUN: llvm-dwarfdump -v %t | FileCheck %s
 
-; Check that pointers and references with size equal to the target's pointer
-; size get emitted without size information in DWARF, even if they are so
-; specified in the IR.
+; Check that pointers and references with size different to the target's pointer
+; size are emitted with size information in DWARF.
 
 ; CHECK: 0x[[O1:[0-9a-f]+]]:   DW_TAG_pointer_type
 ; CHECK-NEXT: DW_AT_type [DW_FORM_ref4]
-; CHECK-NOT: DW_AT_byte_size
-; CHECK: 0x[[O2:[0-9a-f]+]]:   DW_TAG_
+; CHECK-NEXT: DW_AT_byte_size [DW_FORM_data1] (0x10)
+; CHECK-NOT: DW_TAG_pointer_type
 
 ; CHECK: 0x[[O3:[0-9a-f]+]]:   DW_TAG_reference_type
 ; CHECK-NEXT: DW_AT_type [DW_FORM_ref4]
-; CHECK-NOT: DW_AT_byte_size
+; CHECK-NEXT: DW_AT_byte_size [DW_FORM_data1] (0x10)
+; CHECK-NOT: DW_TAG_reference_type
 
 define i32 @foo() !dbg !4 {
 entry:
@@ -30,13 +30,13 @@ entry:
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug, enums: !2, retainedTypes: !2, globals: !2, imports: !2)
 !1 = !DIFile(filename: "dwarf-test.c", directory: "test")
 !2 = !{}
-!4 = distinct !DISubprogram(name: "foo", scope: !0, file: !1, line: 6, type: !6, isLocal: false, isDefinition: true, scopeLine: 6, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !0, retainedNodes: !2)
-!5 = distinct !DISubprogram(name: "bar", scope: !0, file: !1, line: 6, type: !15, isLocal: false, isDefinition: true, scopeLine: 6, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !0, retainedNodes: !2)
+!4 = distinct !DISubprogram(name: "foo", scope: !0, file: !1, line: 6, type: !6, isLocal: false, isDefinition: true, scopeLine: 6, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !0, variables: !2)
+!5 = distinct !DISubprogram(name: "bar", scope: !0, file: !1, line: 6, type: !15, isLocal: false, isDefinition: true, scopeLine: 6, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !0, variables: !2)
 !6 = !DISubroutineType(types: !7)
 !7 = !{!9}
 !8 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
-!9 = !DIDerivedType(tag: DW_TAG_pointer_type, scope: !0, baseType: !8, size: 64, align: 64)
-!10 = !DIDerivedType(tag: DW_TAG_reference_type, scope: !0, baseType: !8, size: 64, align: 64)
+!9 = !DIDerivedType(tag: DW_TAG_pointer_type, scope: !0, baseType: !8, size: 128, align: 128)
+!10 = !DIDerivedType(tag: DW_TAG_reference_type, scope: !0, baseType: !8, size: 128, align: 128)
 !11 = !{i32 2, !"Dwarf Version", i32 3}
 !12 = !{i32 1, !"Debug Info Version", i32 3}
 !13 = !DILocation(line: 7, scope: !4)
