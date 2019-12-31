@@ -72,7 +72,7 @@ void *test2() {
   return allocate<struct Foo>();
 }
 
-// Check that pointers-to-members cannot be used
+// Check that pointers-to-members cannot be used:
 class MemPtr {
 public:
   int data;
@@ -203,7 +203,7 @@ static_assert(__builtin_align_down(&align32array[1], 4) == &align32array[0], "")
 static_assert(__builtin_align_down(&align32array[1], 64) == &align32array[0], ""); // expected-error{{not an integral constant expression}}
 // expected-note@-1{{cannot constant evaluate the result of adjusting alignment to 64}}
 
-// Add some checks for __builtin_is_aligned
+// Add some checks for __builtin_is_aligned:
 static_assert(__builtin_is_aligned(&align32array[0], 32), "");
 static_assert(__builtin_is_aligned(&align32array[4], 4), "");
 // We cannot constant evaluate whether the array is aligned to > 32 since this
@@ -224,10 +224,10 @@ static_assert(__builtin_is_aligned(&align32array[4], 4), "");
 static_assert(__builtin_is_aligned(__builtin_align_up(&align32array[0], 64), 64), ""); // expected-error{{not an integral constant expression}}
 // expected-note@-1{{cannot constant evaluate the result of adjusting alignment to 64}}
 
-// Check different source and alignment type widths are handled correctly
+// Check different source and alignment type widths are handled correctly.
 static_assert(!__builtin_is_aligned(static_cast<signed long>(7), static_cast<signed short>(4)), "");
 static_assert(!__builtin_is_aligned(static_cast<signed short>(7), static_cast<signed long>(4)), "");
-// Also check signed -- unsigned mismatch
+// Also check signed -- unsigned mismatch.
 static_assert(!__builtin_is_aligned(static_cast<signed long>(7), static_cast<signed long>(4)), "");
 static_assert(!__builtin_is_aligned(static_cast<unsigned long>(7), static_cast<unsigned long>(4)), "");
 static_assert(!__builtin_is_aligned(static_cast<signed long>(7), static_cast<unsigned long>(4)), "");

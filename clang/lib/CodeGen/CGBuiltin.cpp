@@ -14264,11 +14264,10 @@ struct BuiltinAlignArgs {
 
   BuiltinAlignArgs(const CallExpr *E, CodeGenFunction &CGF) {
     QualType AstType = E->getArg(0)->getType();
-    if (AstType->isArrayType()) {
+    if (AstType->isArrayType())
       Src = CGF.EmitArrayToPointerDecay(E->getArg(0)).getPointer();
-    } else {
+    else
       Src = CGF.EmitScalarExpr(E->getArg(0));
-    }
     SrcType = Src->getType();
     if (SrcType->isPointerTy()) {
       IntType = IntegerType::get(
@@ -14285,7 +14284,7 @@ struct BuiltinAlignArgs {
   }
 };
 
-/// Generate (x & (y-1)) == 0
+/// Generate (x & (y-1)) == 0.
 RValue CodeGenFunction::EmitBuiltinIsAligned(const CallExpr *E) {
   BuiltinAlignArgs Args(E, *this);
   llvm::Value *SrcAddress = Args.Src;
@@ -14306,7 +14305,7 @@ RValue CodeGenFunction::EmitBuiltinAlignTo(const CallExpr *E, bool AlignUp) {
   llvm::Value *SrcForMask = Args.Src;
   if (AlignUp) {
     // When aligning up we have to first add the mask to ensure we go over the
-    // next alignment value and then align down to the next valid multiple
+    // next alignment value and then align down to the next valid multiple.
     // By adding the mask, we ensure that align_up on an already aligned
     // value will not change the value.
     if (SrcForMask->getType()->isPointerTy()) {
@@ -14316,7 +14315,7 @@ RValue CodeGenFunction::EmitBuiltinAlignTo(const CallExpr *E, bool AlignUp) {
       SrcForMask = Builder.CreateAdd(SrcForMask, Args.Mask, "over_boundary");
     }
   }
-  // Negate the mask to only clear the lower bits
+  // Negate the mask to only clear the lower bits.
   llvm::Value *NegatedMask = Builder.CreateNot(Args.Mask, "negated_mask");
   llvm::Value *Result;
   if (SrcForMask->getType()->isPointerTy()) {

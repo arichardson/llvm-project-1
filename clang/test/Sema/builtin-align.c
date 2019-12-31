@@ -15,7 +15,7 @@ void test_parameter_types(char *ptr, size_t size) {
   enum Enum e = EnumValue2;
   _Bool b = 0;
 
-  // first parameter can be any pointer or integer type:
+  // The first parameter can be any pointer or integer type:
   (void)ALIGN_BUILTIN(ptr, 4);
   (void)ALIGN_BUILTIN(size, 2);
   (void)ALIGN_BUILTIN(12345, 2);
@@ -25,7 +25,7 @@ void test_parameter_types(char *ptr, size_t size) {
   (void)ALIGN_BUILTIN((int)e, 2); // but with a cast it is fine
   (void)ALIGN_BUILTIN((int)b, 2); // but with a cast it is fine
 
-  // second parameter must be an integer type (but not enum or _Bool)
+  // The second parameter must be an integer type (but not enum or _Bool):
   (void)ALIGN_BUILTIN(ptr, size);
   (void)ALIGN_BUILTIN(ptr, ptr);    // expected-error {{used type 'char *' where integer is required}}
   (void)ALIGN_BUILTIN(ptr, agg);    // expected-error {{used type 'struct Aggregate' where integer is required}}
@@ -40,7 +40,7 @@ void test_parameter_types(char *ptr, size_t size) {
 
 void test_result_unused(int i, int align) {
   // -Wunused-result does not trigger for macros so we can't use ALIGN_BUILTIN()
-  // but need to call each function here
+  // but need to explicitly call each function.
   __builtin_align_up(i, align);   // expected-warning{{ignoring return value of function declared with const attribute}}
   __builtin_align_down(i, align); // expected-warning{{ignoring return value of function declared with const attribute}}
   __builtin_is_aligned(i, align); // expected-warning{{ignoring return value of function declared with const attribute}}
@@ -105,14 +105,14 @@ void test_invalid_alignment_values(char *ptr, long *longptr, size_t align) {
   (void)ALIGN_BUILTIN(ptr, bad_align); // expected-error {{requested alignment is not a power of 2}}
 }
 
-// check that it can be used in constant expressions
+// Check that it can be used in constant expressions:
 void constant_expression(int x) {
   _Static_assert(__builtin_is_aligned(1024, 512), "");
   _Static_assert(!__builtin_is_aligned(256, 512ULL), "");
   _Static_assert(__builtin_align_up(33, 32) == 64, "");
   _Static_assert(__builtin_align_down(33, 32) == 32, "");
 
-  // but not if one of the arguments isn't constant
+  // But not if one of the arguments isn't constant:
   _Static_assert(ALIGN_BUILTIN(33, x) != 100, ""); // expected-error {{static_assert expression is not an integral constant expression}}
   _Static_assert(ALIGN_BUILTIN(x, 4) != 100, "");  // expected-error {{static_assert expression is not an integral constant expression}}
 }

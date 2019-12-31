@@ -215,14 +215,14 @@ static bool SemaBuiltinAlignment(Sema &S, CallExpr *TheCall, unsigned ID) {
     return Ty->isIntegerType() && !Ty->isEnumeralType() && !Ty->isBooleanType();
   };
   QualType SrcTy = Source->getType();
-  // Should also be able to use it with arrays (but not functions!)
+  // We should also be able to use it with arrays (but not functions!).
   if (SrcTy->canDecayToPointerType() && SrcTy->isArrayType()) {
     SrcTy = S.Context.getDecayedType(SrcTy);
   }
   if ((!SrcTy->isPointerType() && !IsValidIntegerType(SrcTy)) ||
       SrcTy->isFunctionPointerType()) {
-    // XXX: this is not quite the right error message since we don't allow
-    // floating point types, or member pointers
+    // FIXME: this is not quite the right error message since we don't allow
+    // floating point types, or member pointers.
     S.Diag(Source->getExprLoc(), diag::err_typecheck_expect_scalar_operand)
         << SrcTy;
     return true;
@@ -236,7 +236,7 @@ static bool SemaBuiltinAlignment(Sema &S, CallExpr *TheCall, unsigned ID) {
   }
   Expr::EvalResult AlignResult;
   unsigned MaxAlignmentBits = S.Context.getIntWidth(SrcTy) - 1;
-  // Can't check validity of alignment if it is type dependent
+  // We can't check validity of alignment if it is type dependent.
   if (!AlignOp->isInstantiationDependent() &&
       AlignOp->EvaluateAsInt(AlignResult, S.Context,
                              Expr::SE_AllowSideEffects)) {

@@ -8151,17 +8151,16 @@ static CharUnits GetAlignOfExpr(EvalInfo &Info, const Expr *E,
 }
 
 static CharUnits getBaseAlignment(EvalInfo &Info, const LValue &Value) {
-  if (const ValueDecl *VD = Value.Base.dyn_cast<const ValueDecl *>()) {
+  if (const auto *VD = Value.Base.dyn_cast<const ValueDecl *>()) {
     return Info.Ctx.getDeclAlign(VD);
-  } else if (const Expr *E = Value.Base.dyn_cast<const Expr *>()) {
+  } else if (const auto *E = Value.Base.dyn_cast<const Expr *>()) {
     return GetAlignOfExpr(Info, E, UETT_AlignOf);
-  } else {
-    return GetAlignOfType(Info, Value.Base.getTypeInfoType(), UETT_AlignOf);
   }
+  return GetAlignOfType(Info, Value.Base.getTypeInfoType(), UETT_AlignOf);
 }
 
 /// Evaluate the value of the alignment argument to __builtin_align_{up,down},
-/// __builtin_is_aligned and __builtin_assume_aligned
+/// __builtin_is_aligned and __builtin_assume_aligned.
 static bool getAlignmentArgument(const Expr *E, QualType ForType,
                                  EvalInfo &Info, APSInt &Alignment) {
   if (!EvaluateInteger(E, Alignment, Info))
@@ -8170,7 +8169,7 @@ static bool getAlignmentArgument(const Expr *E, QualType ForType,
     Info.FFDiag(E, diag::note_constexpr_invalid_alignment) << Alignment;
     return false;
   }
-  const unsigned SrcWidth = Info.Ctx.getIntWidth(ForType);
+  unsigned SrcWidth = Info.Ctx.getIntWidth(ForType);
   APSInt MaxValue(APInt::getOneBitSet(SrcWidth, SrcWidth - 1));
   if (APSInt::compareValues(Alignment, MaxValue) > 0) {
     Info.FFDiag(E, diag::note_constexpr_alignment_too_big)
@@ -8299,9 +8298,8 @@ bool PointerExprEvaluator::VisitBuiltinCallExpr(const CallExpr *E,
           BuiltinOp == Builtin::BI__builtin_align_down
               ? llvm::alignDown(Result.Offset.getQuantity(), Alignment64)
               : llvm::alignTo(Result.Offset.getQuantity(), Alignment64));
-
       Result.adjustOffset(NewOffset - Result.Offset);
-      // TODO: out-of-bounds values?
+      // TODO: diagnose out-of-bounds values/only allow for arrays?
       return true;
     }
     // Otherwise, we cannot constant-evaluate the result.
@@ -10717,7 +10715,6 @@ bool IntExprEvaluator::VisitBuiltinCallExpr(const CallExpr *E,
       return false;
     if (!Src.isInt())
       return Error(E);
-    assert(Src.isInt() && "Adjusting pointer alignment in IntExprEvaluator?");
     APSInt AlignedVal =
         APSInt((Src.getInt() + (Alignment - 1)) & ~(Alignment - 1),
                Src.getInt().isUnsigned());
@@ -10731,7 +10728,6 @@ bool IntExprEvaluator::VisitBuiltinCallExpr(const CallExpr *E,
       return false;
     if (!Src.isInt())
       return Error(E);
-    assert(Src.isInt() && "Adjusting pointer alignment in IntExprEvaluator?");
     APSInt AlignedVal =
         APSInt(Src.getInt() & ~(Alignment - 1), Src.getInt().isUnsigned());
     assert(AlignedVal.getBitWidth() == Src.getInt().getBitWidth());
