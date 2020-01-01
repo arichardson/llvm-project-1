@@ -246,16 +246,19 @@ static bool SemaBuiltinAlignment(Sema &S, CallExpr *TheCall, unsigned ID) {
     if (AlignValue < 1) {
       S.Diag(AlignOp->getExprLoc(), diag::err_alignment_too_small) << 1;
       return true;
-    } else if (llvm::APSInt::compareValues(AlignValue, MaxValue) > 0) {
+    }
+    if (llvm::APSInt::compareValues(AlignValue, MaxValue) > 0) {
       S.Diag(AlignOp->getExprLoc(), diag::err_alignment_too_big)
           << MaxValue.toString(10);
       return true;
-    } else if (AlignValue == 1) {
-      S.Diag(AlignOp->getExprLoc(), diag::warn_alignment_builtin_useless)
-          << IsBooleanAlignBuiltin;
-    } else if (!AlignValue.isPowerOf2()) {
+    }
+    if (!AlignValue.isPowerOf2()) {
       S.Diag(AlignOp->getExprLoc(), diag::err_alignment_not_power_of_two);
       return true;
+    }
+    if (AlignValue == 1) {
+      S.Diag(AlignOp->getExprLoc(), diag::warn_alignment_builtin_useless)
+          << IsBooleanAlignBuiltin;
     }
   }
 

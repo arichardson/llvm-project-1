@@ -2810,7 +2810,7 @@ arithmentic, they can perform semantic checking on the alignment value.
 
 .. code-block:: c++
 
-  char global_alloc_buffer[BUFFER_SIZE];
+  char* global_alloc_buffer;
   void* my_aligned_allocator(size_t alloc_size, size_t alignment) {
     char* result = __builtin_align_up(global_alloc_buffer, alignment);
     // result now contains the value of global_alloc_buffer rounded up to the

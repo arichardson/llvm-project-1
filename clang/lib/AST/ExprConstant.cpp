@@ -8151,11 +8151,10 @@ static CharUnits GetAlignOfExpr(EvalInfo &Info, const Expr *E,
 }
 
 static CharUnits getBaseAlignment(EvalInfo &Info, const LValue &Value) {
-  if (const auto *VD = Value.Base.dyn_cast<const ValueDecl *>()) {
+  if (const auto *VD = Value.Base.dyn_cast<const ValueDecl *>())
     return Info.Ctx.getDeclAlign(VD);
-  } else if (const auto *E = Value.Base.dyn_cast<const Expr *>()) {
+  if (const auto *E = Value.Base.dyn_cast<const Expr *>())
     return GetAlignOfExpr(Info, E, UETT_AlignOf);
-  }
   return GetAlignOfType(Info, Value.Base.getTypeInfoType(), UETT_AlignOf);
 }
 
@@ -10680,7 +10679,7 @@ bool IntExprEvaluator::VisitBuiltinCallExpr(const CallExpr *E,
     if (!getBuiltinAlignArguments(E, Info, Src, Alignment))
       return false;
     if (Src.isLValue()) {
-      // If we evaluated a pointer, check the minimum known alignment
+      // If we evaluated a pointer, check the minimum known alignment.
       LValue Ptr;
       Ptr.setFrom(Info.Ctx, Src);
       CharUnits BaseAlignment = getBaseAlignment(Info, Ptr);
