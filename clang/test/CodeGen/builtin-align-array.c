@@ -9,17 +9,19 @@ extern int func(char *c);
 // CHECK-NEXT:    [[BUF:%.*]] = alloca [1024 x i8], align 16
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [1024 x i8], [1024 x i8]* [[BUF]], i64 0, i64 44
 // CHECK-NEXT:    [[INTPTR:%.*]] = ptrtoint i8* [[ARRAYIDX]] to i64
-// CHECK-NEXT:    [[ALIGNED_INTPTR:%.*]] = and i64 [[INTPTR]], -16
-// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = inttoptr i64 [[ALIGNED_INTPTR]] to i8*
+// CHECK-NEXT:    [[PAST_END:%.*]] = and i64 [[INTPTR]], 15
+// CHECK-NEXT:    [[TO_SUBTRACT:%.*]] = sub i64 0, [[PAST_END]]
+// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = getelementptr i8, i8* [[ARRAYIDX]], i64 [[TO_SUBTRACT]]
 // CHECK-NEXT:    [[CALL:%.*]] = call i32 @func(i8* [[ALIGNED_RESULT]])
 // CHECK-NEXT:    [[ARRAYIDX1:%.*]] = getelementptr inbounds [1024 x i8], [1024 x i8]* [[BUF]], i64 0, i64 22
 // CHECK-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr i8, i8* [[ARRAYIDX1]], i64 31
 // CHECK-NEXT:    [[INTPTR2:%.*]] = ptrtoint i8* [[OVER_BOUNDARY]] to i64
-// CHECK-NEXT:    [[ALIGNED_INTPTR3:%.*]] = and i64 [[INTPTR2]], -32
-// CHECK-NEXT:    [[ALIGNED_RESULT4:%.*]] = inttoptr i64 [[ALIGNED_INTPTR3]] to i8*
-// CHECK-NEXT:    [[CALL5:%.*]] = call i32 @func(i8* [[ALIGNED_RESULT4]])
-// CHECK-NEXT:    [[ARRAYIDX6:%.*]] = getelementptr inbounds [1024 x i8], [1024 x i8]* [[BUF]], i64 0, i64 16
-// CHECK-NEXT:    [[SRC_ADDR:%.*]] = ptrtoint i8* [[ARRAYIDX6]] to i64
+// CHECK-NEXT:    [[PAST_END3:%.*]] = and i64 [[INTPTR2]], 31
+// CHECK-NEXT:    [[TO_SUBTRACT4:%.*]] = sub i64 0, [[PAST_END3]]
+// CHECK-NEXT:    [[ALIGNED_RESULT5:%.*]] = getelementptr i8, i8* [[OVER_BOUNDARY]], i64 [[TO_SUBTRACT4]]
+// CHECK-NEXT:    [[CALL6:%.*]] = call i32 @func(i8* [[ALIGNED_RESULT5]])
+// CHECK-NEXT:    [[ARRAYIDX7:%.*]] = getelementptr inbounds [1024 x i8], [1024 x i8]* [[BUF]], i64 0, i64 16
+// CHECK-NEXT:    [[SRC_ADDR:%.*]] = ptrtoint i8* [[ARRAYIDX7]] to i64
 // CHECK-NEXT:    [[SET_BITS:%.*]] = and i64 [[SRC_ADDR]], 63
 // CHECK-NEXT:    [[IS_ALIGNED:%.*]] = icmp eq i64 [[SET_BITS]], 0
 // CHECK-NEXT:    [[CONV:%.*]] = zext i1 [[IS_ALIGNED]] to i32
@@ -37,15 +39,17 @@ int test_array(void) {
 // CHECK-NEXT:    [[BUF:%.*]] = alloca [1024 x i8], align 32
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [1024 x i8], [1024 x i8]* [[BUF]], i64 0, i64 64
 // CHECK-NEXT:    [[INTPTR:%.*]] = ptrtoint i8* [[ARRAYIDX]] to i64
-// CHECK-NEXT:    [[ALIGNED_INTPTR:%.*]] = and i64 [[INTPTR]], -16
-// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = inttoptr i64 [[ALIGNED_INTPTR]] to i8*
+// CHECK-NEXT:    [[PAST_END:%.*]] = and i64 [[INTPTR]], 15
+// CHECK-NEXT:    [[TO_SUBTRACT:%.*]] = sub i64 0, [[PAST_END]]
+// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = getelementptr i8, i8* [[ARRAYIDX]], i64 [[TO_SUBTRACT]]
 // CHECK-NEXT:    [[CALL:%.*]] = call i32 @func(i8* [[ALIGNED_RESULT]])
 // CHECK-NEXT:    [[ARRAYIDX1:%.*]] = getelementptr inbounds [1024 x i8], [1024 x i8]* [[BUF]], i64 0, i64 32
 // CHECK-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr i8, i8* [[ARRAYIDX1]], i64 31
 // CHECK-NEXT:    [[INTPTR2:%.*]] = ptrtoint i8* [[OVER_BOUNDARY]] to i64
-// CHECK-NEXT:    [[ALIGNED_INTPTR3:%.*]] = and i64 [[INTPTR2]], -32
-// CHECK-NEXT:    [[ALIGNED_RESULT4:%.*]] = inttoptr i64 [[ALIGNED_INTPTR3]] to i8*
-// CHECK-NEXT:    [[CALL5:%.*]] = call i32 @func(i8* [[ALIGNED_RESULT4]])
+// CHECK-NEXT:    [[PAST_END3:%.*]] = and i64 [[INTPTR2]], 31
+// CHECK-NEXT:    [[TO_SUBTRACT4:%.*]] = sub i64 0, [[PAST_END3]]
+// CHECK-NEXT:    [[ALIGNED_RESULT5:%.*]] = getelementptr i8, i8* [[OVER_BOUNDARY]], i64 [[TO_SUBTRACT4]]
+// CHECK-NEXT:    [[CALL6:%.*]] = call i32 @func(i8* [[ALIGNED_RESULT5]])
 // CHECK-NEXT:    ret i32 1
 //
 int test_array_should_not_mask(void) {
