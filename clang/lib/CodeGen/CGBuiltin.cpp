@@ -14316,17 +14316,20 @@ RValue CodeGenFunction::EmitBuiltinAlignTo(const CallExpr *E, bool AlignUp) {
     }
   }
   // Negate the mask to only clear the lower bits.
-  llvm::Value *NegatedMask = Builder.CreateNot(Args.Mask, "negated_mask");
   llvm::Value *Result;
   if (SrcForMask->getType()->isPointerTy()) {
-    /// TODO: Use ptrmask instead of ptrtoint/inttoptr
+    /// TODO: Use ptrmask instead of ptrtoint+gep
     // Result = Builder.CreateIntrinsic(
     //  Intrinsic::ptrmask, {Args.SrcType, SrcForMask->getType(), Args.IntType},
     //  {SrcForMask, NegatedMask}, nullptr, "aligned_result");
     Result = Builder.CreatePtrToInt(SrcForMask, Args.IntType, "intptr");
-    Result = Builder.CreateAnd(Result, NegatedMask, "aligned_intptr");
-    Result = Builder.CreateIntToPtr(Result, Args.SrcType, "aligned_result");
+    Result = Builder.CreateAnd(Result, Args.Mask, "past_end");
+    Result = Builder.CreateNeg(Result, "to_subtract");
+    Result = Builder.CreateGEP(EmitCastToVoidPtr(SrcForMask), Result,
+                               "aligned_result");
+    Result = Builder.CreatePointerCast(Result, Args.SrcType);
   } else {
+    llvm::Value *NegatedMask = Builder.CreateNot(Args.Mask, "negated_mask");
     Result = Builder.CreateAnd(SrcForMask, NegatedMask, "aligned_result");
   }
   assert(Result->getType() == Args.SrcType);

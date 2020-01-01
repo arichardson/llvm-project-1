@@ -81,11 +81,13 @@ _Bool is_aligned(TYPE ptr, unsigned align) {
 // NON_I8_POINTER-NEXT:  [[PTR:%.*]] = bitcast [[$TYPE]] %ptr to i8*
 // POINTER-NEXT:         [[OVER_BOUNDARY:%.*]] = getelementptr i8, i8* [[PTR]], i64 [[MASK]]
 // INTEGER-NEXT:         [[OVER_BOUNDARY:%.*]] = add [[$TYPE]] [[PTR]], [[MASK]]
-// CHECK-NEXT:           [[NEGATED_MASK:%.*]] = xor [[ALIGN_TYPE]] [[MASK]], -1
+// INTEGER-NEXT:         [[NEGATED_MASK:%.*]] = xor [[ALIGN_TYPE]] [[MASK]], -1
 // NOTYET-POINTER-NEXT:  [[ALIGNED_RESULT:%.*]] = call [[$TYPE]] @llvm.ptrmask.p0[[$PTRTYPE]].p0i8.i64(i8* [[OVER_BOUNDARY]], [[ALIGN_TYPE]] [[NEGATED_MASK]])
 // POINTER-NEXT:         [[INTPTR:%.*]] = ptrtoint i8* [[OVER_BOUNDARY]] to [[ALIGN_TYPE]]
-// POINTER-NEXT:         [[ALIGNED_INTPTR:%.*]] = and [[ALIGN_TYPE]] [[INTPTR]], [[NEGATED_MASK]]
-// POINTER-NEXT:         [[ALIGNED_RESULT:%.*]] = inttoptr [[ALIGN_TYPE]] [[ALIGNED_INTPTR]] to [[$TYPE]]
+// POINTER-NEXT:         [[PAST_END:%.*]] = and [[ALIGN_TYPE]] [[INTPTR]], [[MASK]]
+// POINTER-NEXT:         [[TO_SUBTRACT:%.*]] = sub i64 0, [[PAST_END]]
+// POINTER-NEXT:         [[ALIGNED_RESULT:%.*]] = getelementptr i8, i8* [[OVER_BOUNDARY]], i64 [[TO_SUBTRACT]]
+// NON_I8_POINTER-NEXT:  [[ALIGNED_RESULT:%.*]] = bitcast i8* %aligned_result to [[$TYPE]]
 // INTEGER-NEXT:         [[ALIGNED_RESULT:%.*]] = and [[$TYPE]] [[OVER_BOUNDARY]], [[NEGATED_MASK]]
 // CHECK-NEXT:           ret [[$TYPE]] [[ALIGNED_RESULT]]
 //
@@ -99,11 +101,14 @@ TYPE align_up(TYPE ptr, unsigned align) {
 // ALIGNMENT_EXT-NEXT:   [[ALIGNMENT:%.*]] = zext i32 [[ALIGN]] to [[ALIGN_TYPE:i64]]
 // ALIGNMENT_TRUNC-NEXT: [[ALIGNMENT:%.*]] = trunc i32 [[ALIGN]] to [[ALIGN_TYPE:i16]]
 // CHECK-NEXT:           [[MASK:%.*]] = sub [[ALIGN_TYPE]] [[ALIGNMENT]], 1
-// CHECK-NEXT:           [[NEGATED_MASK:%.*]] = xor [[ALIGN_TYPE]] [[MASK]], -1
+// INTEGER-NEXT:         [[NEGATED_MASK:%.*]] = xor [[ALIGN_TYPE]] [[MASK]], -1
 // NOTYET-POINTER-NEXT:  [[ALIGNED_RESULT:%.*]] = call [[$TYPE]] @llvm.ptrmask.p0[[$PTRTYPE]].p0[[$PTRTYPE]].i64([[$TYPE]] [[PTR]], [[ALIGN_TYPE]] [[NEGATED_MASK]])
 // POINTER-NEXT:         [[INTPTR:%.*]] = ptrtoint [[$TYPE]] [[PTR]] to [[ALIGN_TYPE]]
-// POINTER-NEXT:         [[ALIGNED_INTPTR:%.*]] = and [[ALIGN_TYPE]] [[INTPTR]], [[NEGATED_MASK]]
-// POINTER-NEXT:         [[ALIGNED_RESULT:%.*]] = inttoptr [[ALIGN_TYPE]] [[ALIGNED_INTPTR]] to [[$TYPE]]
+// POINTER-NEXT:         [[PAST_END:%.*]] = and [[ALIGN_TYPE]] [[INTPTR]], [[MASK]]
+// POINTER-NEXT:         [[TO_SUBTRACT:%.*]] = sub i64 0, [[PAST_END]]
+// NON_I8_POINTER-NEXT:  [[PTR:%.*]] = bitcast [[$TYPE]] %ptr to i8*
+// POINTER-NEXT:         [[ALIGNED_RESULT:%.*]] = getelementptr i8, i8* [[PTR]], i64 [[TO_SUBTRACT]]
+// NON_I8_POINTER-NEXT:  [[ALIGNED_RESULT:%.*]] = bitcast i8* %aligned_result to [[$TYPE]]
 // INTEGER-NEXT:         [[ALIGNED_RESULT:%.*]] = and [[$TYPE]] [[PTR]], [[NEGATED_MASK]]
 // CHECK-NEXT:           ret [[$TYPE]] [[ALIGNED_RESULT]]
 //
