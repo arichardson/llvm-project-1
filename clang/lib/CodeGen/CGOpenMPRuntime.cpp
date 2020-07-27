@@ -2162,7 +2162,8 @@ Address CGOpenMPRuntime::emitThreadIDAddress(CodeGenFunction &CGF,
 }
 
 llvm::Constant *CGOpenMPRuntime::getOrCreateInternalVariable(
-    llvm::Type *Ty, const llvm::Twine &Name, unsigned AddressSpace) {
+    llvm::Type *Ty, const llvm::Twine &Name,
+    llvm::Optional<unsigned> AddressSpace) {
   SmallString<256> Buffer;
   llvm::raw_svector_ostream Out(Buffer);
   Out << Name;

@@ -798,14 +798,12 @@ private:
   /// \param Ty Type of the global variable. If it is exist already the type
   /// must be the same.
   /// \param Name Name of the variable.
-  llvm::Constant *getOrCreateInternalVariable(llvm::Type *Ty,
-                                              const llvm::Twine &Name,
-                                              unsigned AddressSpace);
-  LLVM_ATTRIBUTE_DEPRECATED(llvm::Constant *getOrCreateInternalVariable(
-                                llvm::Type *Ty, const llvm::Twine &Name),
-                            "use the overload with an explicit address space") {
-    return getOrCreateInternalVariable(Ty, Name, 0);
-  }
+  /// \param AddressSpace Address space of the variable (or default globals
+  /// address space if omitted).
+  llvm::Constant *
+  getOrCreateInternalVariable(llvm::Type *Ty, const llvm::Twine &Name,
+                              llvm::Optional<unsigned> AddressSpace = None);
+
   /// Set of threadprivate variables with the generated initializer.
   llvm::StringSet<> ThreadPrivateWithDefinition;
 
