@@ -2476,12 +2476,17 @@ static bool isFunctionDeclarationName(const FormatToken &Current,
   if (Next->MatchingParen->Next &&
       Next->MatchingParen->Next->is(TT_PointerOrReference))
     return true;
+  // Treat  cases where the parameter list only contains comma-separated
+  // identifiers as function declarations. For example:
+  // `SomeType funcdecl(OtherType)` or `SomeType funcdecl(Type1, Type2)`
+  bool CouldBeTypeList = true;
   for (const FormatToken *Tok = Next->Next; Tok && Tok != Next->MatchingParen;
        Tok = Tok->Next) {
     if (Tok->is(TT_TypeDeclarationParen))
       return true;
     if (Tok->isOneOf(tok::l_paren, TT_TemplateOpener) && Tok->MatchingParen) {
       Tok = Tok->MatchingParen;
+      CouldBeTypeList = false;
       continue;
     }
     if (Tok->is(tok::kw_const) || Tok->isSimpleTypeSpecifier() ||
@@ -2490,8 +2495,14 @@ static bool isFunctionDeclarationName(const FormatToken &Current,
     if (Tok->isOneOf(tok::l_brace, tok::string_literal, TT_ObjCMethodExpr) ||
         Tok->Tok.isLiteral())
       return false;
+    if (!Tok->isOneOf(tok::identifier, tok::comma))
+      CouldBeTypeList = false;
   }
-  return false;
+  // TODO: we should not make this decision based on the indentation level, but
+  // rather based on the type of scope (for example namespaces/classes/etc.
+  // should probably parse `SomeType decl(Type1, Type2)` as a function but
+  // inside a function this should always be treated as a variable.
+  return CouldBeTypeList && Line.Level == 0;
 }
 
 bool TokenAnnotator::mustBreakForReturnType(const AnnotatedLine &Line) const {

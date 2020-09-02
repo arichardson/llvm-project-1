@@ -6772,12 +6772,28 @@ TEST_F(FormatTest, BreaksFunctionDeclarationsWithTrailingTokens) {
       "                   aaaaaaaaaaaaaaaaaaaaaaaaa));");
   verifyFormat("bool aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
                "    __attribute__((unused));");
-  verifyGoogleFormat(
+  FormatStyle Google = getGoogleStyle();
+  verifyFormat(
       "bool aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
-      "    GUARDED_BY(aaaaaaaaaaaa);");
-  verifyGoogleFormat(
+      "GUARDED_BY(aaaaaaaaaaaa);\n" // parsed as function decl
+      "void f() {\n"
+      "  bool aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+      "      GUARDED_BY(aaaaaaaaaaaa);\n" // parsed as variable decl
+      "}\n"
+      "class Cls {\n"
+      "  bool aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+      "      GUARDED_BY(aaaaaaaaaaaa);\n" // parsed as variable decl
+      "};",
+      Google);
+  verifyFormat(
       "bool aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
-      "    GUARDED_BY(aaaaaaaaaaaa);");
+      "GUARDED_BY(aaaaaaaaaaaa);", // parsed as function decl
+      Google);
+  Google.AttributeMacros = {"GUARDED_BY"};
+  verifyFormat(
+      "bool aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa GUARDED_BY(\n"
+      "    aaaaaaaaaaaa);", // parsed as variable decl
+      Google);
   verifyGoogleFormat(
       "bool aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa GUARDED_BY(aaaaaaaaaaaa) =\n"
       "    aaaaaaaa::aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;");
@@ -7997,9 +8013,66 @@ TEST_F(FormatTest, ReturnTypeBreakingStyle) {
   // All declarations and definitions should have the return type moved to its
   // own line.
   Style.AlwaysBreakAfterReturnType = FormatStyle::RTBS_All;
+  Style.NamespaceIndentation = FormatStyle::NI_All;
   Style.TypenameMacros = {"LIST"};
   verifyFormat("SomeType\n"
                "funcdecl(LIST(uint64_t));",
+               Style);
+  verifyFormat("SomeType\n"
+               "funcdecl();\n"
+               "SomeType\n"
+               "funcdecl(SomeType paramname);\n"
+               "SomeType\n"
+               "funcdecl(_Atomic(uint64_t));\n"
+               "SomeType\n"
+               "funcdecl(SomeType param1, OtherType param2);\n"
+               // Also handle parameter lists declaration without names (but
+               // only at the top level, not inside functions
+               "SomeType\n"
+               "funcdecl(SomeType);\n"
+               "SomeType\n"
+               "funcdecl(SomeType, OtherType);\n"
+               // Check that any kind of expression/operator results in parsing
+               // it as a variable declaration and not a function
+               "SomeType vardecl(var + otherVar);\n"
+               "SomeType vardecl(func());\n"
+               "SomeType vardecl(someFunc(arg));\n"
+               "SomeType vardecl(var, var - otherVar);\n"
+               "SomeType x = var * funcdecl();\n"
+               "SomeType x = var * funcdecl(otherVar);\n"
+               "SomeType x = var * funcdecl(var, otherVar);\n"
+               "void\n"
+               "function_scope() {\n"
+               "  SomeType x = var * funcdecl();\n"
+               "  SomeType x = var * funcdecl(otherVar);\n"
+               "  SomeType x = var * funcdecl(var, otherVar);\n"
+               // While clang will parse these as function declarations, at
+               // least for now clang-format assumes they are variables.
+               "  SomeType *funcdecl();\n"
+               "  SomeType *funcdecl(SomeType);\n"
+               "  SomeType *funcdecl(SomeType, OtherType);\n"
+               "}\n"
+               "namespace namspace_scope {\n"
+               // TODO: Should we also parse these as a function declaration
+               //  and not as a variable inside namespaces?
+               "  SomeType\n"
+               "  funcdecl();\n"
+               "  SomeType\n"
+               "  funcdecl(SomeType paramname);\n"
+               "  SomeType\n"
+               "  funcdecl(_Atomic(uint64_t));\n"
+               "  SomeType\n"
+               "  funcdecl(SomeType param1, OtherType param2);\n"
+               "  SomeType decl(SomeType);\n"
+               "  SomeType decl(SomeType, OtherType);\n"
+               "  SomeType vardecl(var + otherVar);\n"
+               "  SomeType vardecl(func());\n"
+               "  SomeType vardecl(someFunc(arg));\n"
+               "  SomeType vardecl(var, var - otherVar);\n"
+               "  SomeType x = var * funcdecl();\n"
+               "  SomeType x = var * funcdecl(otherVar);\n"
+               "  SomeType x = var * funcdecl(var, otherVar);\n"
+               "} // namespace namspace_scope\n",
                Style);
   verifyFormat("class E {\n"
                "  int\n"
@@ -9999,11 +10072,19 @@ TEST_F(FormatTest, BreaksLongVariableDeclarations) {
   verifyFormat("LoooooooooooooooooooooooooooooooooooooooongType\n"
                "    LoooooooooooooooooooooooooooooooooooooooongVariable(1);");
   verifyFormat("LoooooooooooooooooooooooooooooooooooooooongType\n"
-               "    LoooooooooooooooooooooooooooooooooooooooongVariable(a);");
-  verifyFormat("LoooooooooooooooooooooooooooooooooooooooongType\n"
                "    LoooooooooooooooooooooooooooooooooooooooongVariable({});");
   verifyFormat("LoooooooooooooooooooooooooooooooooooooooongType\n"
                "    LoooooooooooooooooooooooooooooooooooooongVariable([A a]);");
+  // A single identifier inside parentheses is parsed as a function declaration
+  // in the global scope, but as a variable inside functions.
+  verifyFormat("LoooooooooooooooooooooooooooooooooooooooongType\n"
+               "LoooooooooooooooooooooooooooooooooooooooongVariable(a);\n"
+               "void f() {\n"
+               "  LoooooooooooooooooooooooooooooooooooooooongType\n"
+               "      LoooooooooooooooooooooooooooooooooooooooongVariable(a);\n"
+               "  LoooooooooooooooooooooooooooooooooooooooongType\n"
+               "      LooooooooooooooooooooooooooooooooooongVariable2(a + 1);\n"
+               "}");
 
   // Lambdas should not confuse the variable declaration heuristic.
   verifyFormat("LooooooooooooooooongType\n"
