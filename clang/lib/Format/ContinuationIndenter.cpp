@@ -256,6 +256,7 @@ LineState ContinuationIndenter::getInitialState(unsigned FirstIndent,
                                    /*NoLineBreak=*/false));
   State.LineContainsContinuedForLoopSection = false;
   State.NoContinuation = false;
+  State.HasContinuationIndent = false;
   State.StartOfStringLiteral = 0;
   State.StartOfLineLevel = 0;
   State.LowestLevelOnLine = 0;
@@ -974,6 +975,7 @@ unsigned ContinuationIndenter::getNewLineColumn(const LineState &State) {
   unsigned ContinuationIndent =
       std::max(State.Stack.back().LastSpace, State.Stack.back().Indent) +
       Style.ContinuationIndentWidth;
+  ContinuationIndent = State.FirstIndent + Style.ContinuationIndentWidth;
   const FormatToken *PreviousNonComment = Current.getPreviousNonComment();
   const FormatToken *NextNonComment = Previous.getNextNonComment();
   if (!NextNonComment)
