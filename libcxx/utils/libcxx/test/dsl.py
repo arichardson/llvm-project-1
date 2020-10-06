@@ -118,7 +118,11 @@ def programOutput(config, program, args=None, testPrefix=''):
       if exitCode != 0:
         return None
 
-      out, err, exitCode, _ = _executeScriptInternal(test, ["%{{run}} {}".format(' '.join(args))])
+      # Note: We use exec_nowrapper here to avoid running the configuration
+      # tests under GDB/valgrind/etc.
+      out, err, exitCode, _ = _executeScriptInternal(test, [
+        "%{{exec_nowrapper}} %t.exe {}".format(' '.join(args))
+      ])
       if exitCode != 0:
         return None
 

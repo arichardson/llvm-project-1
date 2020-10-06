@@ -485,6 +485,11 @@ class Configuration(object):
             '--codesign_identity "{}"'.format(codesign_ident),
             '--env {}'.format(env_vars)
         ]
+        # The exec_nowrapper substitution is used for configuration checks.
+        sub.append(('%{exec_nowrapper}', '{} {} -- '.format(self.executor, ' '.join(exec_args))))
+        if self.lit_config.run_with_debugger:
+            exec_args.append("--wrapper-command")
+            exec_args.append(pipes.quote(' '.join(map(pipes.quote, self.lit_config.debugger_args))))
         sub.append(('%{exec}', '{} {} -- '.format(self.executor, ' '.join(exec_args))))
 
     def configure_env(self):

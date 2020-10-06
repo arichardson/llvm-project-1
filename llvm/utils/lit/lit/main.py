@@ -38,6 +38,7 @@ def main(builtin_params={}):
         isWindows=is_windows,
         params=params,
         config_prefix=opts.configPrefix,
+        run_with_debugger=opts.run_with_debugger,
         echo_all_commands=opts.echoAllCommands)
 
     discovered_tests = lit.discovery.find_tests_for_inputs(lit_config, opts.test_paths,

@@ -12,7 +12,7 @@
 #       arguments in case an argument is an empty string.
 # RUN: %{python} %s x%S \
 # RUN:              x%T \
-# RUN:              x%{escaped_exec} \
+# RUN:              x%{escaped_exec_nowrapper} \
 # RUN:              x%{escaped_cxx} \
 # RUN:              x%{escaped_flags} \
 # RUN:              x%{escaped_compile_flags} \
@@ -75,7 +75,8 @@ class SetupConfigs(unittest.TestCase):
             ('%{flags}', base64Decode(FLAGS)),
             ('%{compile_flags}', base64Decode(COMPILE_FLAGS)),
             ('%{link_flags}', base64Decode(LINK_FLAGS)),
-            ('%{exec}', base64Decode(EXEC))
+            ('%{exec}', base64Decode(EXEC)),
+            ('%{exec_nowrapper}', base64Decode(EXEC))
         ]
 
     def getSubstitution(self, substitution):

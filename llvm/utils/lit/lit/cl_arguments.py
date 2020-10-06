@@ -197,6 +197,15 @@ def parse_args():
     debug_group.add_argument("--show-used-features",
             help="Show all features used in the test suite (in XFAIL, UNSUPPORTED and REQUIRES) and exit",
             action="store_true")
+    # TODO: Also support lldb
+    debug_group.add_argument("--run-with-debugger",
+             help="Run tests with gdb and print a backtrace on crash. "
+                  "This is currently only supported for libc++/libunwind.",
+             choices=("gdb", ))
+    debug_group.add_argument("--gdb",
+             dest="run_with_debugger",
+             help="This is an alias for --run-with-debugger=gdb.",
+             action="store_const", const="gdb")
 
     # LIT is special: environment variables override command line arguments.
     env_args = shlex.split(os.environ.get("LIT_OPTS", ""))

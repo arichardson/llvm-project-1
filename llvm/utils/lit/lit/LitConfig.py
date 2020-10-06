@@ -1,13 +1,14 @@
 from __future__ import absolute_import
+
 import inspect
 import os
-import platform
 import sys
 
 import lit.Test
-import lit.formats
 import lit.TestingConfig
+import lit.formats
 import lit.util
+
 
 # LitConfig must be a new style class for properties to work
 class LitConfig(object):
@@ -26,6 +27,7 @@ class LitConfig(object):
                  params, config_prefix = None,
                  maxIndividualTestTime = 0,
                  parallelism_groups = {},
+                 run_with_debugger = None,
                  echo_all_commands = False):
         # The name of the test runner.
         self.progname = progname
@@ -63,6 +65,17 @@ class LitConfig(object):
                 self.valgrindArgs.append('--leak-check=no')
             self.valgrindArgs.extend(self.valgrindUserArgs)
 
+        self.run_with_debugger = run_with_debugger is not None
+        self.debugger_args = []
+        if self.run_with_debugger:
+            if run_with_debugger == 'gdb':
+                # We use "thread apply all bt" instead of "bt" to ensure that a
+                # successful exit doesn't cause GDB to return a non-zero exit code
+                # due the program no longer existing when "bt" is executed.
+                self.debugger_args = ["gdb", "--quiet", "--batch", "--return-child-result",
+                                      "-ex=r", "-ex=thread apply all bt", "--args"]
+            else:
+                raise ValueError("Unsupported debugger: " + run_with_debugger)
         self.maxIndividualTestTime = maxIndividualTestTime
         self.parallelism_groups = parallelism_groups
         self.echo_all_commands = echo_all_commands
