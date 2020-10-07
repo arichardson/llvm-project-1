@@ -416,9 +416,6 @@ struct LineState {
   /// \c true if \p NextToken should not continue this line.
   bool NoContinuation;
 
-  /// \c true if \p NextToken has been indented by the continuation indent.
-  bool HasContinuationIndent;
-
   /// The \c NestingLevel at the start of this line.
   unsigned StartOfLineLevel;
 
