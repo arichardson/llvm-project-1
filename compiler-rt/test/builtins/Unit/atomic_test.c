@@ -186,16 +186,22 @@ void test_loads(void) {
 
     // Test with aligned data.
     for (int n = 1; n <= LEN(data); n++) {
+      // Note: __atomic_load requires a writable mapping, so we copy the data.
+      __attribute__((aligned(16))) char src[LEN(data)] = {0};
       __attribute__((aligned(16))) char dst[LEN(data)] = {0};
-      __atomic_load_c(n, data, dst, model);
+      memcpy(src, data, sizeof(src));
+      __atomic_load_c(n, src, dst, model);
       if (memcmp(dst, data, n) != 0)
         abort();
     }
 
     // Test with unaligned data.
     for (int n = 1; n < LEN(data); n++) {
+      // Note: __atomic_load requires a writable mapping, so we copy the data.
+      __attribute__((aligned(16))) char src[LEN(data)] = {0};
       __attribute__((aligned(16))) char dst[LEN(data)] = {0};
-      __atomic_load_c(n, data + 1, dst + 1, model);
+      memcpy(src, data, sizeof(src));
+      __atomic_load_c(n, src + 1, dst + 1, model);
       if (memcmp(dst + 1, data + 1, n) != 0)
         abort();
     }
