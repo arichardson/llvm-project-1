@@ -6,7 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: clang-8
+// constexpr bool test() results in "error: constexpr function never produces a
+// constant expression" before clang 11
+// UNSUPPORTED: clang-5, clang-6, clang-7, clang-8, clang-9, clang-10
 // UNSUPPORTED: gcc-8, gcc-9
 
 // <memory>

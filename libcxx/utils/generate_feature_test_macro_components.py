@@ -1,7 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
-from builtins import range
 from functools import reduce
 
 def get_libcxx_paths():
@@ -218,6 +217,8 @@ feature_test_macros = [ add_version_header(x) for x in [
     "unimplemented": True,
   }, {
     "name": "__cpp_lib_constexpr_dynamic_alloc",
+    "depends": "defined(__cpp_constexpr_dynamic_alloc)",
+    "internal_depends": "defined(__cpp_constexpr_dynamic_alloc)",
     "values": { "c++20": 201907 },
     "headers": ["memory"],
   }, {

@@ -2416,11 +2416,17 @@
 #   endif
 # endif
 
-# ifndef __cpp_lib_constexpr_dynamic_alloc
-#   error "__cpp_lib_constexpr_dynamic_alloc should be defined in c++20"
-# endif
-# if __cpp_lib_constexpr_dynamic_alloc != 201907L
-#   error "__cpp_lib_constexpr_dynamic_alloc should have the value 201907L in c++20"
+# if defined(__cpp_constexpr_dynamic_alloc)
+#   ifndef __cpp_lib_constexpr_dynamic_alloc
+#     error "__cpp_lib_constexpr_dynamic_alloc should be defined in c++20"
+#   endif
+#   if __cpp_lib_constexpr_dynamic_alloc != 201907L
+#     error "__cpp_lib_constexpr_dynamic_alloc should have the value 201907L in c++20"
+#   endif
+# else
+#   ifdef __cpp_lib_constexpr_dynamic_alloc
+#     error "__cpp_lib_constexpr_dynamic_alloc should not be defined when defined(__cpp_constexpr_dynamic_alloc) is not defined!"
+#   endif
 # endif
 
 # ifndef __cpp_lib_constexpr_functional
@@ -3597,11 +3603,17 @@
 #   endif
 # endif
 
-# ifndef __cpp_lib_constexpr_dynamic_alloc
-#   error "__cpp_lib_constexpr_dynamic_alloc should be defined in c++2b"
-# endif
-# if __cpp_lib_constexpr_dynamic_alloc != 201907L
-#   error "__cpp_lib_constexpr_dynamic_alloc should have the value 201907L in c++2b"
+# if defined(__cpp_constexpr_dynamic_alloc)
+#   ifndef __cpp_lib_constexpr_dynamic_alloc
+#     error "__cpp_lib_constexpr_dynamic_alloc should be defined in c++2b"
+#   endif
+#   if __cpp_lib_constexpr_dynamic_alloc != 201907L
+#     error "__cpp_lib_constexpr_dynamic_alloc should have the value 201907L in c++2b"
+#   endif
+# else
+#   ifdef __cpp_lib_constexpr_dynamic_alloc
+#     error "__cpp_lib_constexpr_dynamic_alloc should not be defined when defined(__cpp_constexpr_dynamic_alloc) is not defined!"
+#   endif
 # endif
 
 # ifndef __cpp_lib_constexpr_functional
