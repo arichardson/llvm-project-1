@@ -6335,8 +6335,21 @@ CodeGenModule::createOpenCLIntToSamplerConversion(const Expr *E,
 
 CharUnits CodeGenModule::getNaturalPointeeTypeAlignment(
     QualType T, LValueBaseInfo *BaseInfo, TBAAAccessInfo *TBAAInfo) {
-  return getNaturalTypeAlignment(T->getPointeeType(), BaseInfo, TBAAInfo,
-                                 /* forPointeeType= */ true);
+
+  CharUnits NaturalAlign =
+      getNaturalTypeAlignment(T->getPointeeType(), BaseInfo, TBAAInfo,
+                              /* forPointeeType= */ true);
+  if (const auto *TT = dyn_cast<TypedefType>(T)) {
+    if (AlignValueAttr *AVAttr = TT->getDecl()->getAttr<AlignValueAttr>()) {
+      if (Optional<llvm::APSInt> Alignment =
+              AVAttr->getAlignment()->getIntegerConstantExpr(getContext())) {
+        uint64_t AttrAlignment = std::min(
+            (uint64_t)llvm::Value::MaximumAlignment, Alignment->getZExtValue());
+        return std::max(NaturalAlign, CharUnits::fromQuantity(AttrAlignment));
+      }
+    }
+  }
+  return NaturalAlign;
 }
 
 CharUnits CodeGenModule::getNaturalTypeAlignment(QualType T,
