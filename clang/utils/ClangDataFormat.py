@@ -93,7 +93,7 @@ class StringRef(object):
 		string = data.ReadRawData(error, 0, data.GetByteSize())
 		if error.Fail():
 			return None
-		return '"%s"' % string
+		return '"%s"' % string.decode("utf-8")
 
 
 # Key is a (function address, type name) tuple, value is the expression path for

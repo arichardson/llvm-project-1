@@ -160,7 +160,12 @@ def StringRefSummaryProvider(valobj, internal_dict):
         if length == 0:
             return "NULL"
         if length < max_length:
-            return valobj.GetChildAtIndex(0).GetSummary()
+            error = lldb.SBError()
+            data = valobj.GetChildAtIndex(0).GetPointeeData(0, length)
+            string = data.ReadRawData(error, 0, data.GetByteSize())
+            if error.Fail():
+                return None
+            return '"%s"' % string.decode("utf-8")
     return ""
 
 def ConstStringSummaryProvider(valobj, internal_dict):
