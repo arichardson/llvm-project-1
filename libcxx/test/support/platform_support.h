@@ -51,6 +51,12 @@
 #   define LOCALE_zh_CN_UTF_8     "zh_CN.UTF-8"
 #endif
 
+#ifdef __APPLE__
+#define LOCALE_cs_CZ_ISO8859_2_COLLATE_ch 1
+#else
+#define LOCALE_cs_CZ_ISO8859_2_COLLATE_ch 0
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <codecvt>

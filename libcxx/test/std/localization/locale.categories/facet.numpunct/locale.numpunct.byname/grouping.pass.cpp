@@ -42,21 +42,26 @@ int main(int, char**)
         }
     }
     {
+#ifdef __FreeBSD__
+        const char* const group = "\3";
+#else
+        const char* const group = "\3\3";
+#endif
         std::locale l(LOCALE_en_US_UTF_8);
         {
             typedef char C;
             const std::numpunct<C>& np = std::use_facet<std::numpunct<C> >(l);
-            assert(np.grouping() == "\3\3");
+            assert(np.grouping(), group);
         }
         {
             typedef wchar_t C;
             const std::numpunct<C>& np = std::use_facet<std::numpunct<C> >(l);
-            assert(np.grouping() == "\3\3");
+            assert(np.grouping(), group);
         }
     }
     {
         std::locale l(LOCALE_fr_FR_UTF_8);
-#if defined(TEST_HAS_GLIBC)
+#if defined(TEST_HAS_GLIBC) || defined(__FreeBSD__)
         const char* const group = "\3";
 #else
         const char* const group = "\x7f";

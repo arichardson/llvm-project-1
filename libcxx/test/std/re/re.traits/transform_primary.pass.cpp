@@ -9,6 +9,8 @@
 //
 // NetBSD does not support LC_COLLATE at the moment
 // XFAIL: netbsd
+// Also does not appear to work on FreeBSD.
+// XFAIL: freebsd
 
 // REQUIRES: locale.cs_CZ.ISO8859-2
 

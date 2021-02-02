@@ -61,6 +61,9 @@ int main(int, char**)
 #if defined(_CS_GNU_LIBC_VERSION)
         const char sep = ' ';
         const wchar_t wsep = glibc_version_less_than("2.27") ? L' ' : L'\u202f';
+#elif defined(__FreeBSD__)
+        const char sep = ' ';
+        const wchar_t wsep = L'\u202f';
 #else
         const char sep = ',';
         const wchar_t wsep = L',';

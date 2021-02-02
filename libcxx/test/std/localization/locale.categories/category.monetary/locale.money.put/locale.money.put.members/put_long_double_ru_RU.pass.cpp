@@ -35,19 +35,6 @@
 
 #include "platform_support.h" // locale name macros
 
-// TODO:
-// Some of the assertions in this test are failing on Apple platforms.
-// Until we figure out the problem and fix it, disable these tests on
-// Apple platforms. Note that we're not using XFAIL or UNSUPPORTED markup
-// here, because this test would otherwise be disabled on all platforms
-// we test. To avoid this test becoming entirely stale, we just disable
-// the parts that fail.
-//
-// See https://llvm.org/PR45739 for the bug tracking this.
-#if defined(__APPLE__)
-#   define APPLE_FIXME
-#endif
-
 typedef std::money_put<char, output_iterator<char*> > Fn;
 
 class my_facet

@@ -19,9 +19,6 @@
 //   string_type
 //   lookup_collatename(ForwardIterator first, ForwardIterator last) const;
 
-// TODO: investigation needed
-// XFAIL: target={{.*}}-linux-gnu{{.*}}
-
 #include <regex>
 #include <iterator>
 #include <cassert>
@@ -114,7 +111,11 @@ int main(int, char**)
     test("tild", std::string(""));
     test("ch", std::string(""));
     std::locale::global(std::locale(LOCALE_cs_CZ_ISO8859_2));
+#if LOCALE_cs_CZ_ISO8859_2_COLLATE_ch
     test("ch", std::string("ch"));
+#else
+    test("ch", std::string(""));
+#endif
     std::locale::global(std::locale("C"));
 
     test(L"NUL", std::wstring(L"\x00", 1));
@@ -190,7 +191,11 @@ int main(int, char**)
     test(L"tild", std::wstring(L""));
     test(L"ch", std::wstring(L""));
     std::locale::global(std::locale(LOCALE_cs_CZ_ISO8859_2));
+#if LOCALE_cs_CZ_ISO8859_2_COLLATE_ch
     test(L"ch", std::wstring(L"ch"));
+#else
+    test(L"ch", std::wstring(L""));
+#endif
     std::locale::global(std::locale("C"));
 
   return 0;

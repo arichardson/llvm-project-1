@@ -147,6 +147,7 @@ int main(int, char**)
         assert(ex == "\xEF\xBF\xA5""-1,234,567.89    ");
         assert(ios.width() == 0);
     }
+#ifndef __FreeBSD__
     {   // negative, showbase, internal
         long double v = -123456789;
         showbase(ios);
@@ -159,6 +160,7 @@ int main(int, char**)
         assert(ex == "\xEF\xBF\xA5""-    1,234,567.89");
         assert(ios.width() == 0);
     }
+#endif
     {   // negative, showbase, right
         long double v = -123456789;
         showbase(ios);

@@ -35,20 +35,7 @@
 
 #include "platform_support.h" // locale name macros
 
-// TODO:
-// Some of the assertions in this test are failing on Apple platforms.
-// Until we figure out the problem and fix it, disable these tests on
-// Apple platforms. Note that we're not using XFAIL or UNSUPPORTED markup
-// here, because this test would otherwise be disabled on all platforms
-// we test. To avoid this test becoming entirely stale, we just disable
-// the parts that fail.
-//
-// See https://llvm.org/PR45739 for the bug tracking this.
-#if defined(__APPLE__)
-#   define APPLE_FIXME
-#endif
-
-typedef std::money_get<char, cpp17_input_iterator<const char*> > Fn;
+typedef std::money_get<char, input_iterator<const char*> > Fn;
 
 class my_facet
     : public Fn
@@ -67,6 +54,41 @@ public:
     explicit my_facetw(std::size_t refs = 0)
         : Fw(refs) {}
 };
+
+#ifdef __FreeBSD__
+#define CURRENCY_SYMBOL "\342\202\275"
+#else
+#define CURRENCY_SYMBOL "\xD1\x80\xD1\x83\xD0\xB1"".";
+#endif
+
+// GLIBC 2.27 and newer use U202F (narrow non-breaking space) as a thousands sep.
+// this function converts the spaces in string inputs to that character if need
+// be. FreeBSD's locale data also uses U202F.
+static std::wstring convert_thousands_sep(std::string const& in) {
+#if defined(_CS_GNU_LIBC_VERSION) || defined(__FreeBSD__)
+  #if defined(_CS_GNU_LIBC_VERSION)
+  if (glibc_version_less_than("2.27"))
+    return in;
+#endif
+  std::string out;
+  unsigned I = 0;
+  bool seen_decimal = false;
+  for (; I < in.size(); ++I) {
+    if (seen_decimal || in[I] != ' ') {
+      seen_decimal |= in[I] == ',';
+      out.push_back(in[I]);
+      continue;
+    }
+    assert(in[I] == ' ');
+    out.push_back('\xe2');
+    out.push_back('\x80');
+    out.push_back('\xaf');
+  }
+  return out;
+#else
+  return in;
+#endif
+}
 
 int main(int, char**)
 {
@@ -139,7 +161,7 @@ int main(int, char**)
             assert(ex == -123456789);
         }
         {   // zero, showbase
-            std::string v = "0,00 \xD1\x80\xD1\x83\xD0\xB1"".";
+            std::string v = "0,00 " CURRENCY_SYMBOL;
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -150,7 +172,7 @@ int main(int, char**)
             assert(ex == 0);
         }
         {   // zero, showbase
-            std::string v = "0,00 \xD1\x80\xD1\x83\xD0\xB1"".";
+            std::string v = "0,00 " CURRENCY_SYMBOL;
             showbase(ios);
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
@@ -163,7 +185,7 @@ int main(int, char**)
             noshowbase(ios);
         }
         {   // negative one, showbase
-            std::string v = "-0,01 \xD1\x80\xD1\x83\xD0\xB1"".";
+            std::string v = "-0,01 " CURRENCY_SYMBOL;
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -174,7 +196,7 @@ int main(int, char**)
             assert(ex == -1);
         }
         {   // negative one, showbase
-            std::string v = "-0,01 \xD1\x80\xD1\x83\xD0\xB1"".";
+            std::string v = "-0,01 " CURRENCY_SYMBOL;
             showbase(ios);
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
@@ -187,7 +209,7 @@ int main(int, char**)
             noshowbase(ios);
         }
         {   // positive, showbase
-            std::string v = "1 234 567,89 \xD1\x80\xD1\x83\xD0\xB1"".";
+            std::string v = "1 234 567,89 " CURRENCY_SYMBOL;
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -198,7 +220,7 @@ int main(int, char**)
             assert(ex == 123456789);
         }
         {   // positive, showbase
-            std::string v = "1 234 567,89 \xD1\x80\xD1\x83\xD0\xB1"".";
+            std::string v = "1 234 567,89 " CURRENCY_SYMBOL;
             showbase(ios);
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
@@ -211,7 +233,7 @@ int main(int, char**)
             noshowbase(ios);
         }
         {   // negative, showbase
-            std::string v = "-1 234 567,89 \xD1\x80\xD1\x83\xD0\xB1"".";
+            std::string v = "-1 234 567,89 " CURRENCY_SYMBOL;
             showbase(ios);
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
@@ -224,7 +246,7 @@ int main(int, char**)
             noshowbase(ios);
         }
         {   // negative, showbase
-            std::string v = "-1 234 567,89 RUB ";
+            std::string v = "-1 234 567,89 RUB";
             showbase(ios);
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
@@ -236,7 +258,7 @@ int main(int, char**)
             noshowbase(ios);
         }
         {   // negative, showbase
-            std::string v = "-1 234 567,89 RUB ";
+            std::string v = "-1 234 567,89 RUB";
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -306,7 +328,7 @@ int main(int, char**)
             assert(ex == -123456789);
         }
         {   // zero, showbase
-            std::string v = "0,00 RUB ";
+            std::string v = "0,00 RUB";
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -316,9 +338,8 @@ int main(int, char**)
             assert(err == std::ios_base::goodbit);
             assert(ex == 0);
         }
-#if !defined(APPLE_FIXME)
         {   // zero, showbase
-            std::string v = "0,00 RUB ";
+            std::string v = "0,00 RUB";
             showbase(ios);
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
@@ -330,9 +351,8 @@ int main(int, char**)
             assert(ex == 0);
             noshowbase(ios);
         }
-#endif
         {   // negative one, showbase
-            std::string v = "-0,01 RUB ";
+            std::string v = "-0,01 RUB";
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -342,9 +362,8 @@ int main(int, char**)
             assert(err == std::ios_base::goodbit);
             assert(ex == -1);
         }
-#if !defined(APPLE_FIXME)
         {   // negative one, showbase
-            std::string v = "-0,01 RUB ";
+            std::string v = "-0,01 RUB";
             showbase(ios);
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
@@ -356,9 +375,8 @@ int main(int, char**)
             assert(ex == -1);
             noshowbase(ios);
         }
-#endif
         {   // positive, showbase
-            std::string v = "1 234 567,89 RUB ";
+            std::string v = "1 234 567,89 RUB";
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -368,9 +386,8 @@ int main(int, char**)
             assert(err == std::ios_base::goodbit);
             assert(ex == 123456789);
         }
-#if !defined(APPLE_FIXME)
         {   // positive, showbase
-            std::string v = "1 234 567,89 RUB ";
+            std::string v = "1 234 567,89 RUB";
             showbase(ios);
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
@@ -382,10 +399,8 @@ int main(int, char**)
             assert(ex == 123456789);
             noshowbase(ios);
         }
-#endif
-#if !defined(APPLE_FIXME)
         {   // negative, showbase
-            std::string v = "-1 234 567,89 RUB ";
+            std::string v = "-1 234 567,89 RUB";
             showbase(ios);
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
@@ -397,9 +412,8 @@ int main(int, char**)
             assert(ex == -123456789);
             noshowbase(ios);
         }
-#endif
         {   // negative, showbase
-            std::string v = "-1 234 567,89 \xD1\x80\xD1\x83\xD0\xB1"".";
+            std::string v = "-1 234 567,89 " CURRENCY_SYMBOL;
             showbase(ios);
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
@@ -411,7 +425,7 @@ int main(int, char**)
             noshowbase(ios);
         }
         {   // negative, showbase
-            std::string v = "-1 234 567,89 \xD1\x80\xD1\x83\xD0\xB1"".";
+            std::string v = "-1 234 567,89 " CURRENCY_SYMBOL;
             typedef cpp17_input_iterator<const char*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -448,7 +462,7 @@ int main(int, char**)
             assert(ex == -1);
         }
         {   // positive
-            std::wstring v = L"1 234 567,89 ";
+            std::wstring v = L"1 234 567,89";
             typedef cpp17_input_iterator<const wchar_t*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -566,7 +580,7 @@ int main(int, char**)
             noshowbase(ios);
         }
         {   // negative, showbase
-            std::wstring v = L"-1 234 567,89 RUB ";
+            std::wstring v = L"-1 234 567,89 RUB";
             showbase(ios);
             typedef cpp17_input_iterator<const wchar_t*> I;
             long double ex;
@@ -578,7 +592,7 @@ int main(int, char**)
             noshowbase(ios);
         }
         {   // negative, showbase
-            std::wstring v = L"-1 234 567,89 RUB ";
+            std::wstring v = L"-1 234 567,89 RUB";
             typedef cpp17_input_iterator<const wchar_t*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -648,7 +662,7 @@ int main(int, char**)
             assert(ex == -123456789);
         }
         {   // zero, showbase
-            std::wstring v = L"0,00 RUB ";
+            std::wstring v = L"0,00 RUB";
             typedef cpp17_input_iterator<const wchar_t*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -658,9 +672,8 @@ int main(int, char**)
             assert(err == std::ios_base::goodbit);
             assert(ex == 0);
         }
-#if !defined(APPLE_FIXME)
         {   // zero, showbase
-            std::wstring v = L"0,00 RUB ";
+            std::wstring v = L"0,00 RUB";
             showbase(ios);
             typedef cpp17_input_iterator<const wchar_t*> I;
             long double ex;
@@ -672,9 +685,8 @@ int main(int, char**)
             assert(ex == 0);
             noshowbase(ios);
         }
-#endif
         {   // negative one, showbase
-            std::wstring v = L"-0,01 RUB ";
+            std::wstring v = L"-0,01 RUB";
             typedef cpp17_input_iterator<const wchar_t*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -684,9 +696,8 @@ int main(int, char**)
             assert(err == std::ios_base::goodbit);
             assert(ex == -1);
         }
-#if !defined(APPLE_FIXME)
         {   // negative one, showbase
-            std::wstring v = L"-0,01 RUB ";
+            std::wstring v = L"-0,01 RUB";
             showbase(ios);
             typedef cpp17_input_iterator<const wchar_t*> I;
             long double ex;
@@ -698,9 +709,8 @@ int main(int, char**)
             assert(ex == -1);
             noshowbase(ios);
         }
-#endif
         {   // positive, showbase
-            std::wstring v = L"1 234 567,89 RUB ";
+            std::wstring v = L"1 234 567,89 RUB";
             typedef cpp17_input_iterator<const wchar_t*> I;
             long double ex;
             std::ios_base::iostate err = std::ios_base::goodbit;
@@ -710,9 +720,8 @@ int main(int, char**)
             assert(err == std::ios_base::goodbit);
             assert(ex == 123456789);
         }
-#if !defined(APPLE_FIXME)
         {   // positive, showbase
-            std::wstring v = L"1 234 567,89 RUB ";
+            std::wstring v = L"1 234 567,89 RUB";
             showbase(ios);
             typedef cpp17_input_iterator<const wchar_t*> I;
             long double ex;
@@ -724,10 +733,8 @@ int main(int, char**)
             assert(ex == 123456789);
             noshowbase(ios);
         }
-#endif
-#if !defined(APPLE_FIXME)
         {   // negative, showbase
-            std::wstring v = L"-1 234 567,89 RUB ";
+            std::wstring v = L"-1 234 567,89 RUB";
             showbase(ios);
             typedef cpp17_input_iterator<const wchar_t*> I;
             long double ex;
@@ -739,7 +746,6 @@ int main(int, char**)
             assert(ex == -123456789);
             noshowbase(ios);
         }
-#endif
         {   // negative, showbase
             std::wstring v = L"-1 234 567,89 \x440\x443\x431"".";
             showbase(ios);
