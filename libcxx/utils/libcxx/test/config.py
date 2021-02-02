@@ -6,9 +6,7 @@
 #
 #===----------------------------------------------------------------------===##
 
-import copy
 import os
-import pkgutil
 import pipes
 import platform
 import re
@@ -16,13 +14,15 @@ import shlex
 import shutil
 import sys
 
-from libcxx.compiler import CXXCompiler
-from libcxx.test.target_info import make_target_info
-import libcxx.util
+import lit
+import lit.LitConfig
+import lit.TestingConfig
 import libcxx.test.features
 import libcxx.test.newconfig
 import libcxx.test.params
-import lit
+import libcxx.util
+from libcxx.compiler import CXXCompiler
+from libcxx.test.target_info import make_target_info
 
 def loadSiteConfig(lit_config, config, param_name, env_name):
     # We haven't loaded the site specific configuration (the user is
@@ -59,8 +59,8 @@ def intMacroValue(token):
 class Configuration(object):
     # pylint: disable=redefined-outer-name
     def __init__(self, lit_config, config):
-        self.lit_config = lit_config
-        self.config = config
+        self.lit_config = lit_config  # type: lit.LitConfig.LitConfig
+        self.config = config  # type: lit.TestingConfig.TestingConfig
         self.cxx = None
         self.cxx_is_clang_cl = None
         self.cxx_stdlib_under_test = None
