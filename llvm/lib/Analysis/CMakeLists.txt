@@ -31,6 +31,8 @@ if (DEFINED LLVM_HAVE_TF_AOT OR DEFINED LLVM_HAVE_TF_API)
   endif()
 endif()
 
+add_definitions(-DLLVM_NO_IMPLICIT_ADDRESS_SPACE=1)
+
 add_llvm_component_library(LLVMAnalysis
   AliasAnalysis.cpp
   AliasAnalysisEvaluator.cpp

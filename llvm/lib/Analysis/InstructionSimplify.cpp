@@ -2545,7 +2545,7 @@ computePointerICmp(CmpInst::Predicate Pred, Value *LHS, Value *RHS,
       uint64_t LHSSize, RHSSize;
       ObjectSizeOpts Opts;
       Opts.NullIsUnknownSize =
-          NullPointerIsDefined(cast<AllocaInst>(LHS)->getFunction());
+          NullPointerIsDefined(cast<AllocaInst>(LHS)->getFunction(), /*FIXME:*/0);
       if (LHSOffsetCI && RHSOffsetCI &&
           getObjectSize(LHS, LHSSize, DL, TLI, Opts) &&
           getObjectSize(RHS, RHSSize, DL, TLI, Opts)) {
@@ -5263,9 +5263,11 @@ static Value *SimplifyRelativeLoad(Constant *Ptr, Constant *Offset,
   if (!IsConstantOffsetFromGlobal(Ptr, PtrSym, PtrOffset, DL))
     return nullptr;
 
-  Type *Int8PtrTy = Type::getInt8PtrTy(Ptr->getContext());
+  Type *Int8PtrTy = Type::getInt8PtrTy(
+      Ptr->getContext(), Ptr->getType()->getPointerAddressSpace());
   Type *Int32Ty = Type::getInt32Ty(Ptr->getContext());
-  Type *Int32PtrTy = Int32Ty->getPointerTo();
+  Type *Int32PtrTy =
+      Int32Ty->getPointerTo(Ptr->getType()->getPointerAddressSpace());
   Type *Int64Ty = Type::getInt64Ty(Ptr->getContext());
 
   auto *OffsetConstInt = dyn_cast<ConstantInt>(Offset);

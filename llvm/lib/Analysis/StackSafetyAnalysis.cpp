@@ -248,7 +248,7 @@ class StackSafetyLocalAnalysis {
 public:
   StackSafetyLocalAnalysis(Function &F, ScalarEvolution &SE)
       : F(F), DL(F.getParent()->getDataLayout()), SE(SE),
-        PointerSize(DL.getPointerSizeInBits()),
+        PointerSize(DL.getIndexSizeInBits(DL.getAllocaAddrSpace())),
         UnknownRange(PointerSize, true) {}
 
   // Run the transformation on the associated function.
@@ -259,7 +259,7 @@ ConstantRange StackSafetyLocalAnalysis::offsetFrom(Value *Addr, Value *Base) {
   if (!SE.isSCEVable(Addr->getType()) || !SE.isSCEVable(Base->getType()))
     return UnknownRange;
 
-  auto *PtrTy = IntegerType::getInt8PtrTy(SE.getContext());
+  auto *PtrTy = IntegerType::getInt8PtrTy(SE.getContext(), DL.getAllocaAddrSpace());
   const SCEV *AddrExp = SE.getTruncateOrZeroExtend(SE.getSCEV(Addr), PtrTy);
   const SCEV *BaseExp = SE.getTruncateOrZeroExtend(SE.getSCEV(Base), PtrTy);
   const SCEV *Diff = SE.getMinusSCEV(AddrExp, BaseExp);

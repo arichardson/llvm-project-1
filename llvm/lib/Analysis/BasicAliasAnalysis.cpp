@@ -1526,7 +1526,7 @@ AliasResult BasicAAResult::aliasCheck(const Value *V1, LocationSize V1Size,
 
   // If the size of one access is larger than the entire object on the other
   // side, then we know such behavior is undefined and can assume no alias.
-  bool NullIsValidLocation = NullPointerIsDefined(&F);
+  bool NullIsValidLocation = NullPointerIsDefined(&F, /*FIXME:*/0);
   if ((isObjectSmallerThan(
           O2, getMinimalExtentFrom(*V1, V1Size, DL, NullIsValidLocation), DL,
           TLI, NullIsValidLocation)) ||
@@ -1649,7 +1649,7 @@ AliasResult BasicAAResult::aliasCheckRecursive(
   // If both pointers are pointing into the same object and one of them
   // accesses the entire object, then the accesses must overlap in some way.
   if (O1 == O2) {
-    bool NullIsValidLocation = NullPointerIsDefined(&F);
+    bool NullIsValidLocation = NullPointerIsDefined(&F, /*FIXME:*/0);
     if (V1Size.isPrecise() && V2Size.isPrecise() &&
         (isObjectSize(O1, V1Size.getValue(), DL, TLI, NullIsValidLocation) ||
          isObjectSize(O2, V2Size.getValue(), DL, TLI, NullIsValidLocation)))

@@ -3829,7 +3829,8 @@ const SCEV *ScalarEvolution::getUMinExpr(SmallVectorImpl<const SCEV *> &Ops) {
 const SCEV *
 ScalarEvolution::getSizeOfScalableVectorExpr(Type *IntTy,
                                              ScalableVectorType *ScalableTy) {
-  Constant *NullPtr = Constant::getNullValue(ScalableTy->getPointerTo());
+  // FIXME: or should this be 0?
+  Constant *NullPtr = Constant::getNullValue(ScalableTy->getPointerTo(ScalableTy->getPointerAddressSpace()));
   Constant *One = ConstantInt::get(IntTy, 1);
   Constant *GEP = ConstantExpr::getGetElementPtr(ScalableTy, NullPtr, One);
   // Note that the expression we created is the final expression, we don't
@@ -12110,14 +12111,17 @@ static const SCEV *removeConstantFactors(ScalarEvolution &SE, const SCEV *T) {
 /// Return the size of an element read or written by Inst.
 const SCEV *ScalarEvolution::getElementSize(Instruction *Inst) {
   Type *Ty;
-  if (StoreInst *Store = dyn_cast<StoreInst>(Inst))
+  unsigned AS = 0;
+  if (StoreInst *Store = dyn_cast<StoreInst>(Inst)) {
     Ty = Store->getValueOperand()->getType();
-  else if (LoadInst *Load = dyn_cast<LoadInst>(Inst))
+    AS = Store->getPointerAddressSpace();
+  } else if (LoadInst *Load = dyn_cast<LoadInst>(Inst)) {
     Ty = Load->getType();
-  else
+    AS = Load->getPointerAddressSpace();
+  } else
     return nullptr;
 
-  Type *ETy = getEffectiveSCEVType(PointerType::getUnqual(Ty));
+  Type *ETy = getEffectiveSCEVType(PointerType::get(Ty, AS));
   return getSizeOfExpr(ETy, Ty);
 }
 

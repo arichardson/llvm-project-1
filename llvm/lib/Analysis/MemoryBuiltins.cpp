@@ -135,6 +135,13 @@ static const Function *getCalledFunction(const Value *V, bool LookThroughBitCast
   return nullptr;
 }
 
+static inline bool isInt8PointerType(Type* Ty) {
+  if (auto PTy = dyn_cast<PointerType>(Ty)) {
+    return PTy->getPointerElementType()->isIntegerTy(8);
+  }
+  return false;
+}
+
 /// Returns the allocation data for the given value if it's either a call to a
 /// known allocation function, or a call to a function with the allocsize
 /// attribute.
@@ -163,13 +170,11 @@ getAllocationDataForFunction(const Function *Callee, AllocType AllocTy,
   int SndParam = FnData->SndParam;
   FunctionType *FTy = Callee->getFunctionType();
 
-  if (FTy->getReturnType() == Type::getInt8PtrTy(FTy->getContext()) &&
+  if (isInt8PointerType(FTy->getReturnType()) &&
       FTy->getNumParams() == FnData->NumParams &&
-      (FstParam < 0 ||
-       (FTy->getParamType(FstParam)->isIntegerTy(32) ||
-        FTy->getParamType(FstParam)->isIntegerTy(64))) &&
-      (SndParam < 0 ||
-       FTy->getParamType(SndParam)->isIntegerTy(32) ||
+      (FstParam < 0 || (FTy->getParamType(FstParam)->isIntegerTy(32) ||
+                        FTy->getParamType(FstParam)->isIntegerTy(64))) &&
+      (SndParam < 0 || FTy->getParamType(SndParam)->isIntegerTy(32) ||
        FTy->getParamType(SndParam)->isIntegerTy(64)))
     return *FnData;
   return None;
@@ -477,7 +482,7 @@ bool llvm::isLibFreeFunction(const Function *F, const LibFunc TLIFn) {
     return false;
   if (FTy->getNumParams() != ExpectedNumParams)
     return false;
-  if (FTy->getParamType(0) != Type::getInt8PtrTy(F->getContext()))
+  if (!isInt8PointerType(FTy->getParamType(0)))
     return false;
 
   return true;
@@ -960,7 +965,8 @@ SizeOffsetEvalType ObjectSizeOffsetEvaluator::visitAllocaInst(AllocaInst &I) {
   // If needed, adjust the alloca's operand size to match the pointer size.
   // Subsequent math operations expect the types to match.
   Value *ArraySize = Builder.CreateZExtOrTrunc(
-      I.getArraySize(), DL.getIntPtrType(I.getContext()));
+      I.getArraySize(),
+      DL.getIntPtrType(I.getContext(), I.getType()->getPointerAddressSpace()));
   assert(ArraySize->getType() == Zero->getType() &&
          "Expected zero constant to have pointer type");
 
