@@ -1025,8 +1025,8 @@ static void *MsanThreadStartFunc(void *arg) {
   return t->ThreadStart();
 }
 
-INTERCEPTOR(int, pthread_create, void *th, void *attr, void *(*callback)(void*),
-            void * param) {
+INTERCEPTOR_PTHREAD(int, create, void *th, void *attr,
+                    void *(*callback)(void *), void *param) {
   ENSURE_MSAN_INITED(); // for GetTlsSize()
   __sanitizer_pthread_attr_t myattr;
   if (!attr) {
@@ -1048,8 +1048,8 @@ INTERCEPTOR(int, pthread_create, void *th, void *attr, void *(*callback)(void*),
   return res;
 }
 
-INTERCEPTOR(int, pthread_key_create, __sanitizer_pthread_key_t *key,
-            void (*dtor)(void *value)) {
+INTERCEPTOR_PTHREAD(int, key_create, __sanitizer_pthread_key_t *key,
+                    void (*dtor)(void *value)) {
   if (msan_init_is_running) return REAL(pthread_key_create)(key, dtor);
   ENSURE_MSAN_INITED();
   int res = REAL(pthread_key_create)(key, dtor);
@@ -1064,7 +1064,7 @@ INTERCEPTOR(int, __libc_thr_keycreate, __sanitizer_pthread_key_t *m,
 ALIAS(WRAPPER_NAME(pthread_key_create));
 #endif
 
-INTERCEPTOR(int, pthread_join, void *th, void **retval) {
+INTERCEPTOR_PTHREAD(int, join, void *th, void **retval) {
   ENSURE_MSAN_INITED();
   int res = REAL(pthread_join)(th, retval);
   if (!res && retval)

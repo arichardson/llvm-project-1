@@ -56,6 +56,8 @@ inline bool in_symbolizer() {
     si.EnableIgnores();
 
 #define TSAN_INTERCEPTOR(ret, func, ...) INTERCEPTOR(ret, func, __VA_ARGS__)
+#define TSAN_INTERCEPTOR_PTHREAD(ret, func, ...) \
+  INTERCEPTOR_PTHREAD(ret, func, __VA_ARGS__)
 
 #if SANITIZER_NETBSD
 # define TSAN_INTERCEPTOR_NETBSD_ALIAS(ret, func, ...) \
