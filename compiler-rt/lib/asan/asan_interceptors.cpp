@@ -198,8 +198,8 @@ static thread_return_t THREAD_CALLING_CONV asan_thread_start(void *arg) {
   return t->ThreadStart(GetTid());
 }
 
-INTERCEPTOR_PTHREAD(int, create, void *thread, void *attr,
-                    void *(*start_routine)(void *), void *arg) {
+INTERCEPTOR(int, pthread_create, void *thread,
+    void *attr, void *(*start_routine)(void*), void *arg) {
   EnsureMainThreadIDIsCorrect();
   // Strict init-order checking is thread-hostile.
   if (flags()->strict_init_order)
@@ -233,7 +233,7 @@ INTERCEPTOR_PTHREAD(int, create, void *thread, void *attr,
   return result;
 }
 
-INTERCEPTOR_PTHREAD(int, join, void *t, void **arg) {
+INTERCEPTOR(int, pthread_join, void *t, void **arg) {
   return real_pthread_join(t, arg);
 }
 
@@ -594,8 +594,8 @@ extern int _pthread_atfork(void (*prepare)(), void (*parent)(),
                            void (*child)());
 };
 
-INTERCEPTOR_PTHREAD(int, atfork, void (*prepare)(), void (*parent)(),
-                    void (*child)()) {
+INTERCEPTOR(int, pthread_atfork, void (*prepare)(), void (*parent)(),
+            void (*child)()) {
 #if CAN_SANITIZE_LEAKS
   __lsan::ScopedInterceptorDisabler disabler;
 #endif

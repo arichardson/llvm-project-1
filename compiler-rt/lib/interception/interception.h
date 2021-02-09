@@ -290,23 +290,6 @@ typedef unsigned long uptr;
     INTERCEPT_FUNCTION_VER_WIN(func, symver)
 #endif
 
-#if SANITIZER_FREEBSD
-// On FreeBSD we also have to intercept the _pthread_* aliases since those are
-// used for direct libthr calls from within libc. If we don't intercept both
-// pthread_foo and _pthread_foo we see lots of false-positives.
-#define INTERCEPTOR_PTHREAD(ret, func, ...)      \
-  INTERCEPTOR(ret, _pthread_##func, __VA_ARGS__) \
-  ALIAS(WRAPPER_NAME(pthread_##func));           \
-  INTERCEPTOR(ret, pthread_##func, __VA_ARGS__)
-#define INTERCEPT_PTHREAD_FUNCTION(name) \
-  INTERCEPT_FUNCTION(pthread_##name);    \
-  INTERCEPT_FUNCTION(_pthread_##name)
-#else
-#define INTERCEPTOR_PTHREAD(ret, func, ...) \
-  INTERCEPTOR(ret, pthread_##func, __VA_ARGS__)
-#define INTERCEPT_PTHREAD_FUNCTION(name) INTERCEPT_FUNCTION(pthread_##name)
-#endif
-
 #undef INCLUDED_FROM_INTERCEPTION_LIB
 
 #endif  // INTERCEPTION_H

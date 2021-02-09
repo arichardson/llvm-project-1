@@ -293,7 +293,6 @@ void ScopedInterceptor::DisableIgnores() {
 }
 
 #define TSAN_INTERCEPT(func) INTERCEPT_FUNCTION(func)
-#define TSAN_INTERCEPT_PTHREAD(func) INTERCEPT_PTHREAD_FUNCTION(func)
 #if SANITIZER_FREEBSD
 # define TSAN_INTERCEPT_VER(func, ver) INTERCEPT_FUNCTION(func)
 # define TSAN_MAYBE_INTERCEPT_NETBSD_ALIAS(func)
@@ -971,8 +970,8 @@ extern "C" void *__tsan_thread_start_func(void *arg) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, create, void *th, void *attr,
-                         void *(*callback)(void *), void *param) {
+TSAN_INTERCEPTOR(int, pthread_create,
+    void *th, void *attr, void *(*callback)(void*), void * param) {
   SCOPED_INTERCEPTOR_RAW(pthread_create, th, attr, callback, param);
 
   MaybeSpawnBackgroundThread();
@@ -1028,7 +1027,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, create, void *th, void *attr,
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, join, void *th, void **ret) {
+TSAN_INTERCEPTOR(int, pthread_join, void *th, void **ret) {
   SCOPED_INTERCEPTOR_RAW(pthread_join, th, ret);
   int tid = ThreadConsumeTid(thr, pc, (uptr)th);
   ThreadIgnoreBegin(thr, pc);
@@ -1042,7 +1041,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, join, void *th, void **ret) {
 
 DEFINE_REAL_PTHREAD_FUNCTIONS
 
-TSAN_INTERCEPTOR_PTHREAD(int, detach, void *th) {
+TSAN_INTERCEPTOR(int, pthread_detach, void *th) {
   SCOPED_INTERCEPTOR_RAW(pthread_detach, th);
   int tid = ThreadConsumeTid(thr, pc, (uptr)th);
   int res = REAL(pthread_detach)(th);
@@ -1052,7 +1051,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, detach, void *th) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(void, exit, void *retval) {
+TSAN_INTERCEPTOR(void, pthread_exit, void *retval) {
   {
     SCOPED_INTERCEPTOR_RAW(pthread_exit, retval);
 #if !SANITIZER_MAC && !SANITIZER_ANDROID
@@ -1063,7 +1062,7 @@ TSAN_INTERCEPTOR_PTHREAD(void, exit, void *retval) {
 }
 
 #if SANITIZER_LINUX
-TSAN_INTERCEPTOR_PTHREAD(int, tryjoin_np, void *th, void **ret) {
+TSAN_INTERCEPTOR(int, pthread_tryjoin_np, void *th, void **ret) {
   SCOPED_INTERCEPTOR_RAW(pthread_tryjoin_np, th, ret);
   int tid = ThreadConsumeTid(thr, pc, (uptr)th);
   ThreadIgnoreBegin(thr, pc);
@@ -1076,8 +1075,8 @@ TSAN_INTERCEPTOR_PTHREAD(int, tryjoin_np, void *th, void **ret) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, timedjoin_np, void *th, void **ret,
-                         const struct timespec *abstime) {
+TSAN_INTERCEPTOR(int, pthread_timedjoin_np, void *th, void **ret,
+                 const struct timespec *abstime) {
   SCOPED_INTERCEPTOR_RAW(pthread_timedjoin_np, th, ret, abstime);
   int tid = ThreadConsumeTid(thr, pc, (uptr)th);
   ThreadIgnoreBegin(thr, pc);
@@ -1161,7 +1160,7 @@ void CondMutexUnlockCtx<Fn>::Unlock() const {
 }
 }  // namespace
 
-TSAN_INTERCEPTOR_PTHREAD(int, cond_init, void *c, void *a) {
+INTERCEPTOR(int, pthread_cond_init, void *c, void *a) {
   void *cond = init_cond(c, true);
   SCOPED_TSAN_INTERCEPTOR(pthread_cond_init, cond, a);
   MemoryAccessRange(thr, pc, (uptr)c, sizeof(uptr), true);
@@ -1192,7 +1191,7 @@ int cond_wait(ThreadState *thr, uptr pc, ScopedInterceptor *si, const Fn &fn,
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, cond_wait, void *c, void *m) {
+INTERCEPTOR(int, pthread_cond_wait, void *c, void *m) {
   void *cond = init_cond(c);
   SCOPED_TSAN_INTERCEPTOR(pthread_cond_wait, cond, m);
   return cond_wait(
@@ -1200,7 +1199,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, cond_wait, void *c, void *m) {
       m);
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, cond_timedwait, void *c, void *m, void *abstime) {
+INTERCEPTOR(int, pthread_cond_timedwait, void *c, void *m, void *abstime) {
   void *cond = init_cond(c);
   SCOPED_TSAN_INTERCEPTOR(pthread_cond_timedwait, cond, m, abstime);
   return cond_wait(
@@ -1210,8 +1209,8 @@ TSAN_INTERCEPTOR_PTHREAD(int, cond_timedwait, void *c, void *m, void *abstime) {
 }
 
 #if SANITIZER_LINUX
-TSAN_INTERCEPTOR_PTHREAD(int, cond_clockwait, void *c, void *m,
-                         __sanitizer_clockid_t clock, void *abstime) {
+INTERCEPTOR(int, pthread_cond_clockwait, void *c, void *m,
+            __sanitizer_clockid_t clock, void *abstime) {
   void *cond = init_cond(c);
   SCOPED_TSAN_INTERCEPTOR(pthread_cond_clockwait, cond, m, clock, abstime);
   return cond_wait(
@@ -1219,14 +1218,14 @@ TSAN_INTERCEPTOR_PTHREAD(int, cond_clockwait, void *c, void *m,
       [=]() { return REAL(pthread_cond_clockwait)(cond, m, clock, abstime); },
       cond, m);
 }
-#define TSAN_MAYBE_PTHREAD_COND_CLOCKWAIT TSAN_INTERCEPT_PTHREAD(cond_clockwait)
+#define TSAN_MAYBE_PTHREAD_COND_CLOCKWAIT TSAN_INTERCEPT(pthread_cond_clockwait)
 #else
 #define TSAN_MAYBE_PTHREAD_COND_CLOCKWAIT
 #endif
 
 #if SANITIZER_MAC
-TSAN_INTERCEPTOR_PTHREAD(int, cond_timedwait_relative_np, void *c, void *m,
-                         void *reltime) {
+INTERCEPTOR(int, pthread_cond_timedwait_relative_np, void *c, void *m,
+            void *reltime) {
   void *cond = init_cond(c);
   SCOPED_TSAN_INTERCEPTOR(pthread_cond_timedwait_relative_np, cond, m, reltime);
   return cond_wait(
@@ -1238,21 +1237,21 @@ TSAN_INTERCEPTOR_PTHREAD(int, cond_timedwait_relative_np, void *c, void *m,
 }
 #endif
 
-TSAN_INTERCEPTOR_PTHREAD(int, cond_signal, void *c) {
+INTERCEPTOR(int, pthread_cond_signal, void *c) {
   void *cond = init_cond(c);
   SCOPED_TSAN_INTERCEPTOR(pthread_cond_signal, cond);
   MemoryAccessRange(thr, pc, (uptr)c, sizeof(uptr), false);
   return REAL(pthread_cond_signal)(cond);
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, cond_broadcast, void *c) {
+INTERCEPTOR(int, pthread_cond_broadcast, void *c) {
   void *cond = init_cond(c);
   SCOPED_TSAN_INTERCEPTOR(pthread_cond_broadcast, cond);
   MemoryAccessRange(thr, pc, (uptr)c, sizeof(uptr), false);
   return REAL(pthread_cond_broadcast)(cond);
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, cond_destroy, void *c) {
+INTERCEPTOR(int, pthread_cond_destroy, void *c) {
   void *cond = init_cond(c);
   SCOPED_TSAN_INTERCEPTOR(pthread_cond_destroy, cond);
   MemoryAccessRange(thr, pc, (uptr)c, sizeof(uptr), true);
@@ -1265,7 +1264,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, cond_destroy, void *c) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, mutex_init, void *m, void *a) {
+TSAN_INTERCEPTOR(int, pthread_mutex_init, void *m, void *a) {
   SCOPED_TSAN_INTERCEPTOR(pthread_mutex_init, m, a);
   int res = REAL(pthread_mutex_init)(m, a);
   if (res == 0) {
@@ -1282,7 +1281,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, mutex_init, void *m, void *a) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, mutex_destroy, void *m) {
+TSAN_INTERCEPTOR(int, pthread_mutex_destroy, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_mutex_destroy, m);
   int res = REAL(pthread_mutex_destroy)(m);
   if (res == 0 || res == errno_EBUSY) {
@@ -1291,7 +1290,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, mutex_destroy, void *m) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, mutex_trylock, void *m) {
+TSAN_INTERCEPTOR(int, pthread_mutex_trylock, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_mutex_trylock, m);
   int res = REAL(pthread_mutex_trylock)(m);
   if (res == errno_EOWNERDEAD)
@@ -1302,7 +1301,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, mutex_trylock, void *m) {
 }
 
 #if !SANITIZER_MAC
-TSAN_INTERCEPTOR_PTHREAD(int, mutex_timedlock, void *m, void *abstime) {
+TSAN_INTERCEPTOR(int, pthread_mutex_timedlock, void *m, void *abstime) {
   SCOPED_TSAN_INTERCEPTOR(pthread_mutex_timedlock, m, abstime);
   int res = REAL(pthread_mutex_timedlock)(m, abstime);
   if (res == 0) {
@@ -1313,7 +1312,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, mutex_timedlock, void *m, void *abstime) {
 #endif
 
 #if !SANITIZER_MAC
-TSAN_INTERCEPTOR_PTHREAD(int, spin_init, void *m, int pshared) {
+TSAN_INTERCEPTOR(int, pthread_spin_init, void *m, int pshared) {
   SCOPED_TSAN_INTERCEPTOR(pthread_spin_init, m, pshared);
   int res = REAL(pthread_spin_init)(m, pshared);
   if (res == 0) {
@@ -1322,7 +1321,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, spin_init, void *m, int pshared) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, spin_destroy, void *m) {
+TSAN_INTERCEPTOR(int, pthread_spin_destroy, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_spin_destroy, m);
   int res = REAL(pthread_spin_destroy)(m);
   if (res == 0) {
@@ -1331,7 +1330,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, spin_destroy, void *m) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, spin_lock, void *m) {
+TSAN_INTERCEPTOR(int, pthread_spin_lock, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_spin_lock, m);
   MutexPreLock(thr, pc, (uptr)m);
   int res = REAL(pthread_spin_lock)(m);
@@ -1341,7 +1340,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, spin_lock, void *m) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, spin_trylock, void *m) {
+TSAN_INTERCEPTOR(int, pthread_spin_trylock, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_spin_trylock, m);
   int res = REAL(pthread_spin_trylock)(m);
   if (res == 0) {
@@ -1350,7 +1349,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, spin_trylock, void *m) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, spin_unlock, void *m) {
+TSAN_INTERCEPTOR(int, pthread_spin_unlock, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_spin_unlock, m);
   MutexUnlock(thr, pc, (uptr)m);
   int res = REAL(pthread_spin_unlock)(m);
@@ -1358,7 +1357,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, spin_unlock, void *m) {
 }
 #endif
 
-TSAN_INTERCEPTOR_PTHREAD(int, rwlock_init, void *m, void *a) {
+TSAN_INTERCEPTOR(int, pthread_rwlock_init, void *m, void *a) {
   SCOPED_TSAN_INTERCEPTOR(pthread_rwlock_init, m, a);
   int res = REAL(pthread_rwlock_init)(m, a);
   if (res == 0) {
@@ -1367,7 +1366,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, rwlock_init, void *m, void *a) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, rwlock_destroy, void *m) {
+TSAN_INTERCEPTOR(int, pthread_rwlock_destroy, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_rwlock_destroy, m);
   int res = REAL(pthread_rwlock_destroy)(m);
   if (res == 0) {
@@ -1376,7 +1375,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, rwlock_destroy, void *m) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, rwlock_rdlock, void *m) {
+TSAN_INTERCEPTOR(int, pthread_rwlock_rdlock, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_rwlock_rdlock, m);
   MutexPreReadLock(thr, pc, (uptr)m);
   int res = REAL(pthread_rwlock_rdlock)(m);
@@ -1386,7 +1385,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, rwlock_rdlock, void *m) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, rwlock_tryrdlock, void *m) {
+TSAN_INTERCEPTOR(int, pthread_rwlock_tryrdlock, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_rwlock_tryrdlock, m);
   int res = REAL(pthread_rwlock_tryrdlock)(m);
   if (res == 0) {
@@ -1396,7 +1395,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, rwlock_tryrdlock, void *m) {
 }
 
 #if !SANITIZER_MAC
-TSAN_INTERCEPTOR_PTHREAD(int, rwlock_timedrdlock, void *m, void *abstime) {
+TSAN_INTERCEPTOR(int, pthread_rwlock_timedrdlock, void *m, void *abstime) {
   SCOPED_TSAN_INTERCEPTOR(pthread_rwlock_timedrdlock, m, abstime);
   int res = REAL(pthread_rwlock_timedrdlock)(m, abstime);
   if (res == 0) {
@@ -1406,7 +1405,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, rwlock_timedrdlock, void *m, void *abstime) {
 }
 #endif
 
-TSAN_INTERCEPTOR_PTHREAD(int, rwlock_wrlock, void *m) {
+TSAN_INTERCEPTOR(int, pthread_rwlock_wrlock, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_rwlock_wrlock, m);
   MutexPreLock(thr, pc, (uptr)m);
   int res = REAL(pthread_rwlock_wrlock)(m);
@@ -1416,7 +1415,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, rwlock_wrlock, void *m) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, rwlock_trywrlock, void *m) {
+TSAN_INTERCEPTOR(int, pthread_rwlock_trywrlock, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_rwlock_trywrlock, m);
   int res = REAL(pthread_rwlock_trywrlock)(m);
   if (res == 0) {
@@ -1426,7 +1425,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, rwlock_trywrlock, void *m) {
 }
 
 #if !SANITIZER_MAC
-TSAN_INTERCEPTOR_PTHREAD(int, rwlock_timedwrlock, void *m, void *abstime) {
+TSAN_INTERCEPTOR(int, pthread_rwlock_timedwrlock, void *m, void *abstime) {
   SCOPED_TSAN_INTERCEPTOR(pthread_rwlock_timedwrlock, m, abstime);
   int res = REAL(pthread_rwlock_timedwrlock)(m, abstime);
   if (res == 0) {
@@ -1436,7 +1435,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, rwlock_timedwrlock, void *m, void *abstime) {
 }
 #endif
 
-TSAN_INTERCEPTOR_PTHREAD(int, rwlock_unlock, void *m) {
+TSAN_INTERCEPTOR(int, pthread_rwlock_unlock, void *m) {
   SCOPED_TSAN_INTERCEPTOR(pthread_rwlock_unlock, m);
   MutexReadOrWriteUnlock(thr, pc, (uptr)m);
   int res = REAL(pthread_rwlock_unlock)(m);
@@ -1444,21 +1443,21 @@ TSAN_INTERCEPTOR_PTHREAD(int, rwlock_unlock, void *m) {
 }
 
 #if !SANITIZER_MAC
-TSAN_INTERCEPTOR_PTHREAD(int, barrier_init, void *b, void *a, unsigned count) {
+TSAN_INTERCEPTOR(int, pthread_barrier_init, void *b, void *a, unsigned count) {
   SCOPED_TSAN_INTERCEPTOR(pthread_barrier_init, b, a, count);
   MemoryWrite(thr, pc, (uptr)b, kSizeLog1);
   int res = REAL(pthread_barrier_init)(b, a, count);
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, barrier_destroy, void *b) {
+TSAN_INTERCEPTOR(int, pthread_barrier_destroy, void *b) {
   SCOPED_TSAN_INTERCEPTOR(pthread_barrier_destroy, b);
   MemoryWrite(thr, pc, (uptr)b, kSizeLog1);
   int res = REAL(pthread_barrier_destroy)(b);
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, barrier_wait, void *b) {
+TSAN_INTERCEPTOR(int, pthread_barrier_wait, void *b) {
   SCOPED_TSAN_INTERCEPTOR(pthread_barrier_wait, b);
   Release(thr, pc, (uptr)b);
   MemoryRead(thr, pc, (uptr)b, kSizeLog1);
@@ -1471,7 +1470,7 @@ TSAN_INTERCEPTOR_PTHREAD(int, barrier_wait, void *b) {
 }
 #endif
 
-TSAN_INTERCEPTOR_PTHREAD(int, once, void *o, void (*f)()) {
+TSAN_INTERCEPTOR(int, pthread_once, void *o, void (*f)()) {
   SCOPED_INTERCEPTOR_RAW(pthread_once, o, f);
   if (o == 0 || f == 0)
     return errno_EINVAL;
@@ -1924,8 +1923,8 @@ TSAN_INTERCEPTOR(int, sigsetmask, int mask) {
   return REAL(sigsetmask)(mask);
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, sigmask, int how, const __sanitizer_sigset_t *set,
-                         __sanitizer_sigset_t *oldset) {
+TSAN_INTERCEPTOR(int, pthread_sigmask, int how, const __sanitizer_sigset_t *set,
+    __sanitizer_sigset_t *oldset) {
   SCOPED_TSAN_INTERCEPTOR(pthread_sigmask, how, set, oldset);
   return REAL(pthread_sigmask)(how, set, oldset);
 }
@@ -2112,7 +2111,7 @@ TSAN_INTERCEPTOR(int, kill, int pid, int sig) {
   return res;
 }
 
-TSAN_INTERCEPTOR_PTHREAD(int, kill, void *tid, int sig) {
+TSAN_INTERCEPTOR(int, pthread_kill, void *tid, int sig) {
   SCOPED_TSAN_INTERCEPTOR(pthread_kill, tid, sig);
   ThreadSignalContext *sctx = SigCtx(thr);
   CHECK_NE(sctx, 0);
@@ -2728,14 +2727,14 @@ void InitializeInterceptors() {
   TSAN_INTERCEPT(strncpy);
   TSAN_INTERCEPT(strdup);
 
-  TSAN_INTERCEPT_PTHREAD(create);
-  TSAN_INTERCEPT_PTHREAD(join);
-  TSAN_INTERCEPT_PTHREAD(detach);
-  TSAN_INTERCEPT_PTHREAD(exit);
-#if SANITIZER_LINUX
-  TSAN_INTERCEPT_PTHREAD(tryjoin_np);
-  TSAN_INTERCEPT_PTHREAD(timedjoin_np);
-#endif
+  TSAN_INTERCEPT(pthread_create);
+  TSAN_INTERCEPT(pthread_join);
+  TSAN_INTERCEPT(pthread_detach);
+  TSAN_INTERCEPT(pthread_exit);
+  #if SANITIZER_LINUX
+  TSAN_INTERCEPT(pthread_tryjoin_np);
+  TSAN_INTERCEPT(pthread_timedjoin_np);
+  #endif
 
   TSAN_INTERCEPT_VER(pthread_cond_init, PTHREAD_ABI_BASE);
   TSAN_INTERCEPT_VER(pthread_cond_signal, PTHREAD_ABI_BASE);
@@ -2746,32 +2745,32 @@ void InitializeInterceptors() {
 
   TSAN_MAYBE_PTHREAD_COND_CLOCKWAIT;
 
-  TSAN_INTERCEPT_PTHREAD(mutex_init);
-  TSAN_INTERCEPT_PTHREAD(mutex_destroy);
-  TSAN_INTERCEPT_PTHREAD(mutex_trylock);
-  TSAN_INTERCEPT_PTHREAD(mutex_timedlock);
+  TSAN_INTERCEPT(pthread_mutex_init);
+  TSAN_INTERCEPT(pthread_mutex_destroy);
+  TSAN_INTERCEPT(pthread_mutex_trylock);
+  TSAN_INTERCEPT(pthread_mutex_timedlock);
 
-  TSAN_INTERCEPT_PTHREAD(spin_init);
-  TSAN_INTERCEPT_PTHREAD(spin_destroy);
-  TSAN_INTERCEPT_PTHREAD(spin_lock);
-  TSAN_INTERCEPT_PTHREAD(spin_trylock);
-  TSAN_INTERCEPT_PTHREAD(spin_unlock);
+  TSAN_INTERCEPT(pthread_spin_init);
+  TSAN_INTERCEPT(pthread_spin_destroy);
+  TSAN_INTERCEPT(pthread_spin_lock);
+  TSAN_INTERCEPT(pthread_spin_trylock);
+  TSAN_INTERCEPT(pthread_spin_unlock);
 
-  TSAN_INTERCEPT_PTHREAD(rwlock_init);
-  TSAN_INTERCEPT_PTHREAD(rwlock_destroy);
-  TSAN_INTERCEPT_PTHREAD(rwlock_rdlock);
-  TSAN_INTERCEPT_PTHREAD(rwlock_tryrdlock);
-  TSAN_INTERCEPT_PTHREAD(rwlock_timedrdlock);
-  TSAN_INTERCEPT_PTHREAD(rwlock_wrlock);
-  TSAN_INTERCEPT_PTHREAD(rwlock_trywrlock);
-  TSAN_INTERCEPT_PTHREAD(rwlock_timedwrlock);
-  TSAN_INTERCEPT_PTHREAD(rwlock_unlock);
+  TSAN_INTERCEPT(pthread_rwlock_init);
+  TSAN_INTERCEPT(pthread_rwlock_destroy);
+  TSAN_INTERCEPT(pthread_rwlock_rdlock);
+  TSAN_INTERCEPT(pthread_rwlock_tryrdlock);
+  TSAN_INTERCEPT(pthread_rwlock_timedrdlock);
+  TSAN_INTERCEPT(pthread_rwlock_wrlock);
+  TSAN_INTERCEPT(pthread_rwlock_trywrlock);
+  TSAN_INTERCEPT(pthread_rwlock_timedwrlock);
+  TSAN_INTERCEPT(pthread_rwlock_unlock);
 
-  TSAN_INTERCEPT_PTHREAD(barrier_init);
-  TSAN_INTERCEPT_PTHREAD(barrier_destroy);
-  TSAN_INTERCEPT_PTHREAD(barrier_wait);
+  TSAN_INTERCEPT(pthread_barrier_init);
+  TSAN_INTERCEPT(pthread_barrier_destroy);
+  TSAN_INTERCEPT(pthread_barrier_wait);
 
-  TSAN_INTERCEPT_PTHREAD(once);
+  TSAN_INTERCEPT(pthread_once);
 
   TSAN_INTERCEPT(fstat);
   TSAN_MAYBE_INTERCEPT___FXSTAT;
@@ -2810,10 +2809,10 @@ void InitializeInterceptors() {
   TSAN_INTERCEPT(sigsuspend);
   TSAN_INTERCEPT(sigblock);
   TSAN_INTERCEPT(sigsetmask);
-  TSAN_INTERCEPT_PTHREAD(sigmask);
+  TSAN_INTERCEPT(pthread_sigmask);
   TSAN_INTERCEPT(raise);
   TSAN_INTERCEPT(kill);
-  TSAN_INTERCEPT_PTHREAD(kill);
+  TSAN_INTERCEPT(pthread_kill);
   TSAN_INTERCEPT(sleep);
   TSAN_INTERCEPT(usleep);
   TSAN_INTERCEPT(nanosleep);

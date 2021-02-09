@@ -158,8 +158,8 @@ static thread_return_t THREAD_CALLING_CONV memprof_thread_start(void *arg) {
   return t->ThreadStart(GetTid(), &param->is_registered);
 }
 
-INTERCEPTOR_PTHREAD(int, create, void *thread, void *attr,
-                    void *(*start_routine)(void *), void *arg) {
+INTERCEPTOR(int, pthread_create, void *thread, void *attr,
+            void *(*start_routine)(void *), void *arg) {
   EnsureMainThreadIDIsCorrect();
   GET_STACK_TRACE_THREAD;
   int detached = 0;
@@ -189,7 +189,7 @@ INTERCEPTOR_PTHREAD(int, create, void *thread, void *attr,
   return result;
 }
 
-INTERCEPTOR_PTHREAD(int, join, void *t, void **arg) {
+INTERCEPTOR(int, pthread_join, void *t, void **arg) {
   return real_pthread_join(t, arg);
 }
 

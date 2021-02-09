@@ -205,8 +205,9 @@ void thread_cleanup_handler(void *_iter) {
 void EnsureInterceptorsInitialized();
 
 /// Intercept thread creation operation to allocate and setup the unsafe stack
-INTERCEPTOR_PTHREAD(int, create, pthread_t *thread, const pthread_attr_t *attr,
-                    void *(*start_routine)(void *), void *arg) {
+INTERCEPTOR(int, pthread_create, pthread_t *thread,
+            const pthread_attr_t *attr,
+            void *(*start_routine)(void*), void *arg) {
   EnsureInterceptorsInitialized();
   size_t size = 0;
   size_t guard = 0;

@@ -381,8 +381,8 @@ extern int _pthread_atfork(void (*prepare)(), void (*parent)(),
                            void (*child)());
 };
 
-INTERCEPTOR_PTHREAD(int, atfork, void (*prepare)(), void (*parent)(),
-                    void (*child)()) {
+INTERCEPTOR(int, pthread_atfork, void (*prepare)(), void (*parent)(),
+            void (*child)()) {
   __lsan::ScopedInterceptorDisabler disabler;
   // REAL(pthread_atfork) cannot be called due to symbol indirections at least
   // on NetBSD
@@ -432,8 +432,8 @@ extern "C" void *__lsan_thread_start_func(void *arg) {
   return callback(param);
 }
 
-INTERCEPTOR_PTHREAD(int, create, void *th, void *attr,
-                    void *(*callback)(void *), void *param) {
+INTERCEPTOR(int, pthread_create, void *th, void *attr,
+            void *(*callback)(void *), void *param) {
   ENSURE_LSAN_INITED;
   EnsureMainThreadIDIsCorrect();
   __sanitizer_pthread_attr_t myattr;
@@ -470,7 +470,7 @@ INTERCEPTOR_PTHREAD(int, create, void *th, void *attr,
   return res;
 }
 
-INTERCEPTOR_PTHREAD(int, join, void *th, void **ret) {
+INTERCEPTOR(int, pthread_join, void *th, void **ret) {
   ENSURE_LSAN_INITED;
   int tid = ThreadTid((uptr)th);
   int res = REAL(pthread_join)(th, ret);
@@ -479,7 +479,7 @@ INTERCEPTOR_PTHREAD(int, join, void *th, void **ret) {
   return res;
 }
 
-INTERCEPTOR_PTHREAD(int, detach, void *th) {
+INTERCEPTOR(int, pthread_detach, void *th) {
   ENSURE_LSAN_INITED;
   int tid = ThreadTid((uptr)th);
   int res = REAL(pthread_detach)(th);
