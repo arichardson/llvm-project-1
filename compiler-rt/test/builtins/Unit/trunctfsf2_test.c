@@ -4,13 +4,16 @@
 #include "int_lib.h"
 #include <stdio.h>
 
-#if __LDBL_MANT_DIG__ == 113
-
 #include "fp_test.h"
+#if !defined(CRT_HAS_F128)
+int main() {
+  fprintf(stderr, "Missing f128 support - skipping.\n");
+  return 0;
+}
+#else
+COMPILER_RT_ABI float __trunctfsf2(f128 a);
 
-COMPILER_RT_ABI float __trunctfsf2(long double a);
-
-int test__trunctfsf2(long double a, uint32_t expected)
+int test__trunctfsf2(f128 a, uint32_t expected)
 {
     float x = __trunctfsf2(a);
     int ret = compareResultF(x, expected);
@@ -22,13 +25,10 @@ int test__trunctfsf2(long double a, uint32_t expected)
     return ret;
 }
 
-char assumption_1[sizeof(long double) * CHAR_BIT == 128] = {0};
-
-#endif
+char assumption_1[sizeof(f128) * CHAR_BIT == 128] = {0};
 
 int main()
 {
-#if __LDBL_MANT_DIG__ == 113
     // qNaN
     if (test__trunctfsf2(makeQNaN128(),
                          UINT32_C(0x7fc00000)))
@@ -58,9 +58,6 @@ int main()
                          UINT32_C(0x0)))
         return 1;
 
-#else
-    printf("skipped\n");
-
-#endif
     return 0;
 }
+#endif

@@ -4,23 +4,26 @@
 
 #include <stdio.h>
 
-
-#if __LDBL_MANT_DIG__ == 113
-
 #include "fp_test.h"
+#if !defined(CRT_HAS_F128)
+int main() {
+  fprintf(stderr, "Missing f128 support - skipping.\n");
+  return 0;
+}
+#else
 #include "int_lib.h"
 
 // Returns: convert a to a unsigned long long, rounding toward zero.
 //          Negative values all become zero.
 
-// Assumption: long double is a 128 bit floating point type
+// Assumption: f128 is a 128 bit floating point type
 //             tu_int is a 128 bit integral type
-//             value in long double is representable in tu_int or is negative 
+//             value in f128 is representable in tu_int or is negative
 //                 (no range checking performed)
 
-COMPILER_RT_ABI tu_int __fixunstfti(long double a);
+COMPILER_RT_ABI tu_int __fixunstfti(f128 a);
 
-int test__fixunstfti(long double a, tu_int expected)
+int test__fixunstfti(f128 a, tu_int expected)
 {
     tu_int x = __fixunstfti(a);
     if (x != expected)
@@ -40,13 +43,10 @@ int test__fixunstfti(long double a, tu_int expected)
 
 char assumption_1[sizeof(tu_int) == 4*sizeof(su_int)] = {0};
 char assumption_2[sizeof(tu_int)*CHAR_BIT == 128] = {0};
-char assumption_3[sizeof(long double)*CHAR_BIT == 128] = {0};
-
-#endif
+char assumption_3[sizeof(f128)*CHAR_BIT == 128] = {0};
 
 int main()
 {
-#if __LDBL_MANT_DIG__ == 113
     if (test__fixunstfti(makeInf128(), make_ti(0xffffffffffffffffLL,
                                                0xffffffffffffffffLL)))
         return 1;
@@ -88,8 +88,6 @@ int main()
                                                   0xffffffffffffffffLL)))
         return 1;
 
-#else
-    printf("skipped\n");
-#endif
    return 0;
 }
+#endif

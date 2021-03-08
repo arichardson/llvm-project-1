@@ -28,7 +28,7 @@ typedef uint64_t src_rep_t;
 static const int srcSigBits = 52;
 
 #elif defined SRC_QUAD
-typedef long double src_t;
+typedef f128 src_t;
 typedef __uint128_t src_rep_t;
 #define SRC_REP_C (__uint128_t)
 static const int srcSigBits = 112;

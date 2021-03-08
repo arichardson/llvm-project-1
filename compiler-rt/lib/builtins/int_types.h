@@ -165,6 +165,16 @@ typedef struct {
 #define HAS_80_BIT_LONG_DOUBLE 0
 #endif
 
+#if __LDBL_MANT_DIG__ == 113
+#define CRT_LDBL_128BIT
+#define CRT_HAS_F128
+typedef long double f128;
+#elif defined(__FLOAT128__) || defined(__SIZEOF_FLOAT128__)
+#define CRT_HAS___FLOAT128_KEYWORD
+#define CRT_HAS_F128
+typedef __float128 f128;
+#endif
+
 #if CRT_HAS_FLOATING_POINT
 typedef union {
   uqwords u;
@@ -175,6 +185,20 @@ typedef union {
 typedef float _Complex Fcomplex;
 typedef double _Complex Dcomplex;
 typedef long double _Complex Lcomplex;
+#if defined(CRT_LDBL_128BIT)
+typedef Lcomplex Qcomplex;
+#define CRT_HAS_NATIVE_COMPLEX_F128
+#elif defined(CRT_HAS___FLOAT128_KEYWORD)
+#if defined(__clang_major__) && __clang_major__ > 10
+// Clang prior to 11 did not support __float128 _Complex.
+typedef __float128 _Complex Qcomplex;
+#define CRT_HAS_NATIVE_COMPLEX_F128
+#elif defined(__GNUC__) && __GNUC__ >= 7
+// GCC does not allow __float128 _Complex, but accepts _Float128 _Complex.
+typedef _Float128 _Complex Qcomplex;
+#define CRT_HAS_NATIVE_COMPLEX_F128
+#endif
+#endif
 
 #define COMPLEX_REAL(x) __real__(x)
 #define COMPLEX_IMAGINARY(x) __imag__(x)
@@ -194,5 +218,17 @@ typedef struct {
 #define COMPLEX_REAL(x) (x).real
 #define COMPLEX_IMAGINARY(x) (x).imaginary
 #endif
+
+#ifdef CRT_HAS_NATIVE_COMPLEX_F128
+#define COMPLEX128_REAL(x) __real__(x)
+#define COMPLEX128_IMAGINARY(x) __imag__(x)
+#elif defined(CRT_HAS_F128)
+typedef struct {
+  f128 real, imaginary;
+} Qcomplex;
+#define COMPLEX128_REAL(x) (x).real
+#define COMPLEX128_IMAGINARY(x) (x).imaginary
+#endif
+
 #endif
 #endif // INT_TYPES_H

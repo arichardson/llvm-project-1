@@ -12,44 +12,45 @@
 
 #define QUAD_PRECISION
 #include "fp_lib.h"
-#include "int_lib.h"
-#include "int_math.h"
+
+#if defined(CRT_HAS_F128)
 
 // Returns: the quotient of (a + ib) / (c + id)
 
-COMPILER_RT_ABI Lcomplex __divtc3(long double __a, long double __b,
-                                  long double __c, long double __d) {
+COMPILER_RT_ABI Qcomplex __divtc3(f128 __a, f128 __b, f128 __c, f128 __d) {
   int __ilogbw = 0;
-  long double __logbw =
-      __compiler_rt_logbl(__compiler_rt_fmaxl(crt_fabsl(__c), crt_fabsl(__d)));
+  f128 __logbw = __compiler_rt_logbf128(
+      __compiler_rt_fmaxf128(crt_fabsf128(__c), crt_fabsf128(__d)));
   if (crt_isfinite(__logbw)) {
     __ilogbw = (int)__logbw;
-    __c = __compiler_rt_scalbnl(__c, -__ilogbw);
-    __d = __compiler_rt_scalbnl(__d, -__ilogbw);
+    __c = __compiler_rt_scalbnf128(__c, -__ilogbw);
+    __d = __compiler_rt_scalbnf128(__d, -__ilogbw);
   }
-  long double __denom = __c * __c + __d * __d;
-  Lcomplex z;
-  COMPLEX_REAL(z) =
-      __compiler_rt_scalbnl((__a * __c + __b * __d) / __denom, -__ilogbw);
-  COMPLEX_IMAGINARY(z) =
-      __compiler_rt_scalbnl((__b * __c - __a * __d) / __denom, -__ilogbw);
-  if (crt_isnan(COMPLEX_REAL(z)) && crt_isnan(COMPLEX_IMAGINARY(z))) {
+  f128 __denom = __c * __c + __d * __d;
+  Qcomplex z;
+  COMPLEX128_REAL(z) =
+      __compiler_rt_scalbnf128((__a * __c + __b * __d) / __denom, -__ilogbw);
+  COMPLEX128_IMAGINARY(z) =
+      __compiler_rt_scalbnf128((__b * __c - __a * __d) / __denom, -__ilogbw);
+  if (crt_isnan(COMPLEX128_REAL(z)) && crt_isnan(COMPLEX128_IMAGINARY(z))) {
     if ((__denom == 0.0) && (!crt_isnan(__a) || !crt_isnan(__b))) {
-      COMPLEX_REAL(z) = crt_copysignl(CRT_INFINITY, __c) * __a;
-      COMPLEX_IMAGINARY(z) = crt_copysignl(CRT_INFINITY, __c) * __b;
+      COMPLEX128_REAL(z) = crt_copysignf128(CRT_INFINITY, __c) * __a;
+      COMPLEX128_IMAGINARY(z) = crt_copysignf128(CRT_INFINITY, __c) * __b;
     } else if ((crt_isinf(__a) || crt_isinf(__b)) && crt_isfinite(__c) &&
                crt_isfinite(__d)) {
-      __a = crt_copysignl(crt_isinf(__a) ? 1.0 : 0.0, __a);
-      __b = crt_copysignl(crt_isinf(__b) ? 1.0 : 0.0, __b);
-      COMPLEX_REAL(z) = CRT_INFINITY * (__a * __c + __b * __d);
-      COMPLEX_IMAGINARY(z) = CRT_INFINITY * (__b * __c - __a * __d);
+      __a = crt_copysignf128(crt_isinf(__a) ? (f128)1.0 : (f128)0.0, __a);
+      __b = crt_copysignf128(crt_isinf(__b) ? (f128)1.0 : (f128)0.0, __b);
+      COMPLEX128_REAL(z) = CRT_INFINITY * (__a * __c + __b * __d);
+      COMPLEX128_IMAGINARY(z) = CRT_INFINITY * (__b * __c - __a * __d);
     } else if (crt_isinf(__logbw) && __logbw > 0.0 && crt_isfinite(__a) &&
                crt_isfinite(__b)) {
-      __c = crt_copysignl(crt_isinf(__c) ? 1.0 : 0.0, __c);
-      __d = crt_copysignl(crt_isinf(__d) ? 1.0 : 0.0, __d);
-      COMPLEX_REAL(z) = 0.0 * (__a * __c + __b * __d);
-      COMPLEX_IMAGINARY(z) = 0.0 * (__b * __c - __a * __d);
+      __c = crt_copysignf128(crt_isinf(__c) ? (f128)1.0 : (f128)0.0, __c);
+      __d = crt_copysignf128(crt_isinf(__d) ? (f128)1.0 : (f128)0.0, __d);
+      COMPLEX128_REAL(z) = 0.0 * (__a * __c + __b * __d);
+      COMPLEX128_IMAGINARY(z) = 0.0 * (__b * __c - __a * __d);
     }
   }
   return z;
 }
+
+#endif

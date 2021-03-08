@@ -3,15 +3,18 @@
 
 #include <stdio.h>
 
-#if __LP64__ && __LDBL_MANT_DIG__ == 113
-
 #include "fp_test.h"
+#if !defined(CRT_HAS_F128)
+int main() {
+  fprintf(stderr, "Missing f128 support - skipping.\n");
+  return 0;
+}
+#else
+long __unordtf2(f128 a, f128 b);
 
-int __unordtf2(long double a, long double b);
-
-int test__unordtf2(long double a, long double b, enum EXPECTED_RESULT expected)
+int test__unordtf2(f128 a, f128 b, enum EXPECTED_RESULT expected)
 {
-    int x = __unordtf2(a, b);
+    long x = __unordtf2(a, b);
     int ret = compareResultCMP(x, expected);
 
     if (ret){
@@ -21,13 +24,10 @@ int test__unordtf2(long double a, long double b, enum EXPECTED_RESULT expected)
     return ret;
 }
 
-char assumption_1[sizeof(long double) * CHAR_BIT == 128] = {0};
-
-#endif
+char assumption_1[sizeof(f128) * CHAR_BIT == 128] = {0};
 
 int main()
 {
-#if __LP64__ && __LDBL_MANT_DIG__ == 113
     // NaN
     if (test__unordtf2(makeQNaN128(),
                        0x1.234567890abcdef1234567890abcp+3L,
@@ -47,9 +47,6 @@ int main()
                        EQUAL_0))
         return 1;
 
-#else
-    printf("skipped\n");
-
-#endif
     return 0;
 }
+#endif

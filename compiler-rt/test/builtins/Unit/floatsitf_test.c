@@ -4,16 +4,20 @@
 #include "int_lib.h"
 #include <stdio.h>
 
-#if __LDBL_MANT_DIG__ == 113
-
 #include "fp_test.h"
+#if !defined(CRT_HAS_F128)
+int main() {
+  fprintf(stderr, "Missing f128 support - skipping.\n");
+  return 0;
+}
+#else
 
-long COMPILER_RT_ABI double __floatsitf(int a);
+COMPILER_RT_ABI f128 __floatsitf(int a);
 
 int test__floatsitf(int a, uint64_t expectedHi, uint64_t expectedLo)
 {
-    long double x = __floatsitf(a);
-    int ret = compareResultLD(x, expectedHi, expectedLo);
+    f128 x = __floatsitf(a);
+    int ret = compareResultF128(x, expectedHi, expectedLo);
 
     if (ret)
     {
@@ -23,13 +27,10 @@ int test__floatsitf(int a, uint64_t expectedHi, uint64_t expectedLo)
     return ret;
 }
 
-char assumption_1[sizeof(long double) * CHAR_BIT == 128] = {0};
-
-#endif
+char assumption_1[sizeof(f128) * CHAR_BIT == 128] = {0};
 
 int main()
 {
-#if __LDBL_MANT_DIG__ == 113
     if (test__floatsitf(0x80000000, UINT64_C(0xc01e000000000000), UINT64_C(0x0)))
         return 1;
     if (test__floatsitf(0x7fffffff, UINT64_C(0x401dfffffffc0000), UINT64_C(0x0)))
@@ -42,10 +43,6 @@ int main()
         return 1;
     if (test__floatsitf(-0x12345678, UINT64_C(0xc01b234567800000), UINT64_C(0x0)))
         return 1;
-
-#else
-    printf("skipped\n");
-
-#endif
     return 0;
 }
+#endif

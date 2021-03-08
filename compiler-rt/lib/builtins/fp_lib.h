@@ -105,12 +105,12 @@ static __inline void wideMultiply(rep_t a, rep_t b, rep_t *hi, rep_t *lo) {
 COMPILER_RT_ABI fp_t __adddf3(fp_t a, fp_t b);
 
 #elif defined QUAD_PRECISION
-#if __LDBL_MANT_DIG__ == 113 && defined(__SIZEOF_INT128__)
-#define CRT_LDBL_128BIT
+#if defined(__SIZEOF_INT128__) && defined(CRT_HAS_F128)
+#define CRT_HAS_F128
 typedef uint64_t half_rep_t;
 typedef __uint128_t rep_t;
 typedef __int128_t srep_t;
-typedef long double fp_t;
+typedef f128 fp_t;
 #define HALF_REP_C UINT64_C
 #define REP_C (__uint128_t)
 // Note: Since there is no explicit way to tell compiler the constant is a
@@ -200,13 +200,13 @@ static __inline void wideMultiply(rep_t a, rep_t b, rep_t *hi, rep_t *lo) {
 #undef Word_HiMask
 #undef Word_LoMask
 #undef Word_FullMask
-#endif // __LDBL_MANT_DIG__ == 113 && __SIZEOF_INT128__
+#endif // defined(__SIZEOF_INT128__) && defined(CRT_HAS_F128)
 #else
 #error SINGLE_PRECISION, DOUBLE_PRECISION or QUAD_PRECISION must be defined.
 #endif
 
 #if defined(SINGLE_PRECISION) || defined(DOUBLE_PRECISION) ||                  \
-    defined(CRT_LDBL_128BIT)
+    defined(CRT_HAS_F128)
 #define typeWidth (sizeof(rep_t) * CHAR_BIT)
 #define exponentBits (typeWidth - significandBits - 1)
 #define maxExponent ((1 << exponentBits) - 1)
@@ -388,14 +388,14 @@ static __inline fp_t __compiler_rt_fmax(fp_t x, fp_t y) {
 
 #elif defined(QUAD_PRECISION)
 
-#if defined(CRT_LDBL_128BIT)
-static __inline fp_t __compiler_rt_logbl(fp_t x) {
+#if defined(CRT_HAS_F128)
+static __inline f128 __compiler_rt_logbf128(f128 x) {
   return __compiler_rt_logbX(x);
 }
-static __inline fp_t __compiler_rt_scalbnl(fp_t x, int y) {
+static __inline f128 __compiler_rt_scalbnf128(f128 x, int y) {
   return __compiler_rt_scalbnX(x, y);
 }
-static __inline fp_t __compiler_rt_fmaxl(fp_t x, fp_t y) {
+static __inline f128 __compiler_rt_fmaxf128(f128 x, f128 y) {
   return __compiler_rt_fmaxX(x, y);
 }
 #else
@@ -410,7 +410,7 @@ static __inline long double __compiler_rt_scalbnl(long double x, int y) {
 static __inline long double __compiler_rt_fmaxl(long double x, long double y) {
   return crt_fmaxl(x, y);
 }
-#endif // CRT_LDBL_128BIT
+#endif // CRT_HAS_F128
 
 #endif // *_PRECISION
 

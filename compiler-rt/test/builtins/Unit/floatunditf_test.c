@@ -6,18 +6,21 @@
 #include <complex.h>
 #include <stdio.h>
 
-#if __LDBL_MANT_DIG__ == 113
-
 #include "fp_test.h"
+#if !defined(CRT_HAS_F128)
+int main() {
+  fprintf(stderr, "Missing f128 support - skipping.\n");
+  return 0;
+}
+#else
+// Returns: long integer converted to f128
 
-// Returns: long integer converted to long double
-
-COMPILER_RT_ABI long double __floatunditf(unsigned long long a);
+COMPILER_RT_ABI f128 __floatunditf(unsigned long long a);
 
 int test__floatunditf(unsigned long long a, uint64_t expectedHi, uint64_t expectedLo)
 {
-    long double x = __floatunditf(a);
-    int ret = compareResultLD(x, expectedHi, expectedLo);
+    f128 x = __floatunditf(a);
+    int ret = compareResultF128(x, expectedHi, expectedLo);
 
     if (ret)
         printf("error in __floatunditf(%Lu) = %.20Lf, "
@@ -25,13 +28,10 @@ int test__floatunditf(unsigned long long a, uint64_t expectedHi, uint64_t expect
     return ret;
 }
 
-char assumption_1[sizeof(long double) * CHAR_BIT == 128] = {0};
-
-#endif
+char assumption_1[sizeof(f128) * CHAR_BIT == 128] = {0};
 
 int main()
 {
-#if __LDBL_MANT_DIG__ == 113
     if (test__floatunditf(0xffffffffffffffffULL, UINT64_C(0x403effffffffffff), UINT64_C(0xfffe000000000000)))
         return 1;
     if (test__floatunditf(0xfffffffffffffffeULL, UINT64_C(0x403effffffffffff), UINT64_C(0xfffc000000000000)))
@@ -49,9 +49,6 @@ int main()
     if (test__floatunditf(0x0ULL, UINT64_C(0x0), UINT64_C(0x0)))
         return 1;
 
-#else
-    printf("skipped\n");
-
-#endif
     return 0;
 }
+#endif

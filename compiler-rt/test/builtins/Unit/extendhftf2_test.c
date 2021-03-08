@@ -3,32 +3,33 @@
 
 #include "int_lib.h"
 #include <stdio.h>
-
-#if __LDBL_MANT_DIG__ == 113 && defined(COMPILER_RT_HAS_FLOAT16)
-
 #include "fp_test.h"
 
-COMPILER_RT_ABI long double __extendhftf2(TYPE_FP16 a);
+#if !defined(CRT_HAS_F128)
+int main() {
+  fprintf(stderr, "Missing f128 support - skipping.\n");
+  return 0;
+}
+#else
+COMPILER_RT_ABI f128 __extendhftf2(TYPE_FP16 a);
 
-int test__extendhftf2(TYPE_FP16 a, uint64_t expectedHi, uint64_t expectedLo) {
-  long double x = __extendhftf2(a);
-  int ret = compareResultLD(x, expectedHi, expectedLo);
+int _test__extendhftf2(int line, TYPE_FP16 a, uint64_t expectedHi, uint64_t expectedLo) {
+  f128 x = __extendhftf2(a);
+  int ret = compareResultF128(x, expectedHi, expectedLo);
 
   if (ret) {
-    printf("error in test__extendhftf2(%#.4x) = %.20Lf, "
-           "expected %.20Lf\n",
-           toRep16(a), x,
-           fromRep128(expectedHi, expectedLo));
+    fprintf(stderr, "%s:%d: error in test__extendhftf2(%#.4x/%g): ",
+            __FILE__, line, toRep16(a), (double)a);
+    printMismatchF128(x, expectedHi, expectedLo);
   }
   return ret;
 }
+#define test__extendhftf2(...) _test__extendhftf2(__LINE__, __VA_ARGS__)
+
 
 char assumption_1[sizeof(TYPE_FP16) * CHAR_BIT == 16] = {0};
 
-#endif
-
 int main() {
-#if __LDBL_MANT_DIG__ == 113 && defined(COMPILER_RT_HAS_FLOAT16)
   // qNaN
   if (test__extendhftf2(makeQNaN16(),
                         UINT64_C(0x7fff800000000000),
@@ -44,7 +45,7 @@ int main() {
                         UINT64_C(0x7fff000000000000),
                         UINT64_C(0x0)))
     return 1;
-  if (test__extendhftf2(-makeInf16(),
+  if (test__extendhftf2(makeNegativeInf16(),
                         UINT64_C(0xffff000000000000),
                         UINT64_C(0x0)))
     return 1;
@@ -88,8 +89,5 @@ int main() {
                         UINT64_C(0x3ff6edc000000000),
                         UINT64_C(0x0)))
     return 1;
-#else
-  printf("skipped\n");
-#endif
-  return 0;
 }
+#endif

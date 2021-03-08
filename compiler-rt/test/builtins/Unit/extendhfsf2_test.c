@@ -7,17 +7,19 @@
 
 float __extendhfsf2(TYPE_FP16 a);
 
-int test__extendhfsf2(TYPE_FP16 a, uint32_t expected)
+int _test__extendhfsf2(int line, TYPE_FP16 a, uint32_t expected)
 {
     float x = __extendhfsf2(a);
     int ret = compareResultF(x, expected);
 
     if (ret){
-        printf("error in test__extendhfsf2(%#.4x) = %f, "
-               "expected %f\n", toRep16(a), x, fromRep32(expected));
+        printf("%s:%d: error in test__extendhfsf2(%#.4x) = %f, "
+               "expected %f\n", __FILE__, line, toRep16(a), x, fromRep32(expected));
     }
     return ret;
 }
+
+#define test__extendhfsf2(...) _test__extendhfsf2(__LINE__, __VA_ARGS__)
 
 char assumption_1[sizeof(TYPE_FP16) * CHAR_BIT == 16] = {0};
 
@@ -32,11 +34,11 @@ int main()
                           UINT32_C(0x7ff00000)))
         return 1;
     // inf
-    if (test__extendhfsf2(fromRep16(0x7c00),
+    if (test__extendhfsf2(makeInf16(),
                           UINT32_C(0x7f800000)))
         return 1;
     // -inf
-    if (test__extendhfsf2(fromRep16(0xfc00),
+    if (test__extendhfsf2(makeNegativeInf16(),
                           UINT32_C(0xff800000)))
         return 1;
     // zero

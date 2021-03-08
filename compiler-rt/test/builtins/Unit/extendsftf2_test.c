@@ -4,32 +4,31 @@
 #include "int_lib.h"
 #include <stdio.h>
 
-#if __LDBL_MANT_DIG__ == 113
-
 #include "fp_test.h"
+#if !defined(CRT_HAS_F128)
+int main() {
+  fprintf(stderr, "Missing f128 support - skipping.\n");
+  return 0;
+}
+#else
+COMPILER_RT_ABI f128 __extendsftf2(float a);
 
-COMPILER_RT_ABI long double __extendsftf2(float a);
+int _test__extendsftf2(int line, float a, uint64_t expectedHi, uint64_t expectedLo) {
+  f128 x = __extendsftf2(a);
+  int ret = compareResultF128(x, expectedHi, expectedLo);
 
-int test__extendsftf2(float a, uint64_t expectedHi, uint64_t expectedLo)
-{
-    long double x = __extendsftf2(a);
-    int ret = compareResultLD(x, expectedHi, expectedLo);
-
-    if (ret)
-    {
-        printf("error in test__extendsftf2(%f) = %.20Lf, "
-               "expected %.20Lf\n", a, x, fromRep128(expectedHi, expectedLo));
-    }
-    return ret;
+  if (ret) {
+    printf("%s:%d: error in __extendsftf2(%f): ", __FILE__, line, a);
+    printMismatchF128(x, expectedHi, expectedLo);
+  }
+  return ret;
 }
 
-char assumption_1[sizeof(long double) * CHAR_BIT == 128] = {0};
+#define test__extendsftf2(...) _test__extendsftf2(__LINE__, __VA_ARGS__)
 
-#endif
 
 int main()
 {
-#if __LDBL_MANT_DIG__ == 113
     // qNaN
     if (test__extendsftf2(makeQNaN32(),
                           UINT64_C(0x7fff800000000000),
@@ -66,9 +65,6 @@ int main()
                           UINT64_C(0x0)))
         return 1;
 
-#else
-    printf("skipped\n");
-
-#endif
     return 0;
 }
+#endif

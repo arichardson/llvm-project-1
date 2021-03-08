@@ -1,104 +1,100 @@
-// RUN: %clang_builtins %s %librt -o %t && %run %t
+// RUN: %clang_builtins %s %librt -Wall -Wextra -Werror=format -o %t && %run %t
 // REQUIRES: librt_has_addtf3
 
 #include <fenv.h>
 #include <stdio.h>
 
-#if __LDBL_MANT_DIG__ == 113
-
 #include "int_lib.h"
 #include "fp_test.h"
 
-// Returns: a + b
-COMPILER_RT_ABI long double __addtf3(long double a, long double b);
-
-int test__addtf3(long double a, long double b,
-                 uint64_t expectedHi, uint64_t expectedLo)
-{
-    long double x = __addtf3(a, b);
-    int ret = compareResultLD(x, expectedHi, expectedLo);
-
-    if (ret){
-        printf("error in test__addtf3(%.20Lf, %.20Lf) = %.20Lf, "
-               "expected %.20Lf\n", a, b, x,
-               fromRep128(expectedHi, expectedLo));
-    }
-
-    return ret;
+#if !defined(CRT_HAS_F128)
+int main() {
+  fprintf(stderr, "Missing f128 support - skipping.\n");
+  return 0;
 }
+#else
 
-char assumption_1[sizeof(long double) * CHAR_BIT == 128] = {0};
+// Returns: a + b
+COMPILER_RT_ABI f128 __addtf3(f128 a, f128 b);
 
-#endif
+int _test__addtf3(int line, f128 a, f128 b,
+                  uint64_t expectedHi, uint64_t expectedLo) {
+  f128 x = __addtf3(a, b);
+  int ret = compareResultF128(x, expectedHi, expectedLo);
+  if (ret) {
+    printMismatchF128TwoArg(__FILE__, line, "__addtf3", a, b, x,
+                            expectedHi, expectedLo);
+  }
+  return ret;
+}
+#define test__addtf3(...) _test__addtf3(__LINE__, __VA_ARGS__)
 
-int main()
-{
-#if __LDBL_MANT_DIG__ == 113
-    // qNaN + any = qNaN
-    if (test__addtf3(makeQNaN128(),
-                     0x1.23456789abcdefp+5L,
-                     UINT64_C(0x7fff800000000000),
-                     UINT64_C(0x0)))
-        return 1;
-    // NaN + any = NaN
-    if (test__addtf3(makeNaN128(UINT64_C(0x800030000000)),
-                     0x1.23456789abcdefp+5L,
-                     UINT64_C(0x7fff800000000000),
-                     UINT64_C(0x0)))
-        return 1;
-    // inf + inf = inf
-    if (test__addtf3(makeInf128(),
-                     makeInf128(),
-                     UINT64_C(0x7fff000000000000),
-                     UINT64_C(0x0)))
-        return 1;
-    // inf + any = inf
-    if (test__addtf3(makeInf128(),
-                     0x1.2335653452436234723489432abcdefp+5L,
-                     UINT64_C(0x7fff000000000000),
-                     UINT64_C(0x0)))
-        return 1;
-    // any + any
-    if (test__addtf3(0x1.23456734245345543849abcdefp+5L,
-                     0x1.edcba52449872455634654321fp-1L,
-                     UINT64_C(0x40042afc95c8b579),
-                     UINT64_C(0x61e58dd6c51eb77c)))
-        return 1;
+int main() {
+  // qNaN + any = qNaN
+  if (test__addtf3(makeQNaN128(),
+                   0x1.23456789abcdefp+5Q,
+                   UINT64_C(0x7fff800000000000),
+                   UINT64_C(0x0)))
+    return 1;
+  // NaN + any = NaN
+  if (test__addtf3(makeNaN128(UINT64_C(0x800030000000)),
+                   0x1.23456789abcdefp+5Q,
+                   UINT64_C(0x7fff800000000000),
+                   UINT64_C(0x0)))
+    return 1;
+  // inf + inf = inf
+  if (test__addtf3(makeInf128(),
+                   makeInf128(),
+                   UINT64_C(0x7fff000000000000),
+                   UINT64_C(0x0)))
+    return 1;
+  // inf + any = inf
+  if (test__addtf3(makeInf128(),
+                   0x1.2335653452436234723489432abcdefp+5Q,
+                   UINT64_C(0x7fff000000000000),
+                   UINT64_C(0x0)))
+    return 1;
+  // any + any
+
+  if (test__addtf3(/* 0x1.23456734245345543849abcdefp+5Q */
+                   fromRep128(UINT64_C(0x4004234567342453), UINT64_C(0x45543849abcdef00)),
+                   /* 0x1.edcba52449872455634654321fp-1Q */
+                   fromRep128(UINT64_C(0x3ffeedcba5244987), UINT64_C(0x2455634654321f00)),
+                   UINT64_C(0x40042afc95c8b579),
+                   UINT64_C(0x61e58dd6c51eb77c)))
+    return 1;
 
 #if (defined(__arm__) || defined(__aarch64__)) && defined(__ARM_FP) || \
     defined(i386) || defined(__x86_64__)
-    // Rounding mode tests on supported architectures
-    const long double m = 1234.0L, n = 0.01L;
+  // Rounding mode tests on supported architectures
+  const f128 m = assertF128Representation(1234.0Q, UINT64_C(0x4009348000000000), UINT64_C(0x0000000000000000));
+  // Closest approximation of 0.1 for f128:
+  const f128 n = assertF128Representation(0.1Q, UINT64_C(0x3ffb999999999999), UINT64_C(0x999999999999999a));
+  fesetround(FE_UPWARD);
+  if (test__addtf3(m, n,
+                   UINT64_C(0x4009348666666666),
+                   UINT64_C(0x6666666666666667)))
+    return 1;
 
-    fesetround(FE_UPWARD);
-    if (test__addtf3(m, n,
-                     UINT64_C(0x40093480a3d70a3d),
-                     UINT64_C(0x70a3d70a3d70a3d8)))
-        return 1;
+  fesetround(FE_DOWNWARD);
+  if (test__addtf3(m, n,
+                   UINT64_C(0x4009348666666666),
+                   UINT64_C(0x6666666666666666)))
+    return 1;
 
-    fesetround(FE_DOWNWARD);
-    if (test__addtf3(m, n,
-                     UINT64_C(0x40093480a3d70a3d),
-                     UINT64_C(0x70a3d70a3d70a3d7)))
-        return 1;
+  fesetround(FE_TOWARDZERO);
+  if (test__addtf3(m, n,
+                   UINT64_C(0x4009348666666666),
+                   UINT64_C(0x6666666666666666)))
+    return 1;
 
-
-    fesetround(FE_TOWARDZERO);
-    if (test__addtf3(m, n,
-                     UINT64_C(0x40093480a3d70a3d),
-                     UINT64_C(0x70a3d70a3d70a3d7)))
-        return 1;
-
-    fesetround(FE_TONEAREST);
-    if (test__addtf3(m, n,
-                     UINT64_C(0x40093480a3d70a3d),
-                     UINT64_C(0x70a3d70a3d70a3d7)))
-        return 1;
+  fesetround(FE_TONEAREST);
+  if (test__addtf3(m, n,
+                   UINT64_C(0x4009348666666666),
+                   UINT64_C(0x6666666666666666)))
+    return 1;
 #endif
-
-#else
-    printf("skipped\n");
-
-#endif
-    return 0;
+  return 0;
 }
+
+#endif

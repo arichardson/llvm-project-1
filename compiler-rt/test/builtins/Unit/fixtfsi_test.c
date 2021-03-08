@@ -3,13 +3,16 @@
 
 #include <stdio.h>
 
-#if __LDBL_MANT_DIG__ == 113
-
 #include "fp_test.h"
+#if !defined(CRT_HAS_F128)
+int main() {
+  fprintf(stderr, "Missing f128 support - skipping.\n");
+  return 0;
+}
+#else
+int __fixtfsi(f128 a);
 
-int __fixtfsi(long double a);
-
-int test__fixtfsi(long double a, int expected)
+int test__fixtfsi(f128 a, int expected)
 {
     int x = __fixtfsi(a);
     int ret = (x != expected);
@@ -21,13 +24,10 @@ int test__fixtfsi(long double a, int expected)
     return ret;
 }
 
-char assumption_1[sizeof(long double) * CHAR_BIT == 128] = {0};
-
-#endif
+char assumption_1[sizeof(f128) * CHAR_BIT == 128] = {0};
 
 int main()
 {
-#if __LDBL_MANT_DIG__ == 113
     if (test__fixtfsi(makeInf128(), 0x7fffffff))
         return 1;
     if (test__fixtfsi(0, 0x0))
@@ -47,9 +47,6 @@ int main()
     if (test__fixtfsi(-0x1.23456789abcdefp+40, 0x80000000))
         return 1;
 
-#else
-    printf("skipped\n");
-
-#endif
     return 0;
 }
+#endif
