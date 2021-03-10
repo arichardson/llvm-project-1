@@ -20,6 +20,7 @@
 #ifndef FP_LIB_HEADER
 #define FP_LIB_HEADER
 
+#include "fp_mode.h"
 #include "int_lib.h"
 #include "int_math.h"
 #include <limits.h>
@@ -284,7 +285,8 @@ static __inline fp_t __compiler_rt_logbX(fp_t x) {
       return -x; // -inf: return -x
     }
   } else if (x == 0.0) {
-    // 0.0: return -inf
+    // 0.0: return -inf and raise divide by zero (IEEE-754-2019 5.3.3 + 7.3)
+    __fe_raise_divbyzero();
     return fromRep(infRep | signBit);
   }
 

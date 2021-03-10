@@ -25,5 +25,7 @@ typedef enum {
 
 CRT_FE_ROUND_MODE __fe_getround(void);
 int __fe_raise_inexact(void);
+int __fe_raise_invalid(void);
+int __fe_raise_divbyzero(void);
 
 #endif // FP_MODE_H

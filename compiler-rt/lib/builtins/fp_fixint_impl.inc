@@ -28,8 +28,11 @@ static __inline fixint_t __fixint(fp_t a) {
     return 0;
 
   // If the value is too large for the integer type, saturate.
-  if ((unsigned)exponent >= sizeof(fixint_t) * CHAR_BIT)
+  if ((unsigned)exponent >= sizeof(fixint_t) * CHAR_BIT) {
+    // Values that are too large/infinity/NaN raise invalid (IEEE-754-2019 7.2j).
+    __fe_raise_invalid();
     return sign == 1 ? fixint_max : fixint_min;
+  }
 
   // If 0 <= exponent < significandBits, right shift to get the result.
   // Otherwise, shift left.

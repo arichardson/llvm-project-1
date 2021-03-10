@@ -30,28 +30,40 @@ static __inline fp_t __mulXf3__(fp_t a, fp_t b) {
     const rep_t bAbs = toRep(b) & absMask;
 
     // NaN * anything = qNaN
-    if (aAbs > infRep)
+    if (aAbs > infRep) {
+      // Raise invalid if one of the operands is a sNaN (IEEE-754-2019 7.2a).
+      if ((toRep(a) & quietBit) == 0 || (bAbs > infRep && (toRep(b) & quietBit) == 0))
+        __fe_raise_invalid();
       return fromRep(toRep(a) | quietBit);
+    }
     // anything * NaN = qNaN
-    if (bAbs > infRep)
+    if (bAbs > infRep) {
+      // Raise invalid if one of the operands is a sNaN (IEEE-754-2019 7.2a).
+      if ((toRep(b) & quietBit) == 0 || (aAbs > infRep && (toRep(a) & quietBit) == 0))
+        __fe_raise_invalid();
       return fromRep(toRep(b) | quietBit);
+    }
 
     if (aAbs == infRep) {
-      // infinity * non-zero = +/- infinity
-      if (bAbs)
+      if (bAbs) {
+        // infinity * non-zero = +/- infinity
         return fromRep(aAbs | productSign);
-      // infinity * zero = NaN
-      else
+      } else {
+        // infinity * zero = NaN, raises invalid (IEEE-754-2019 7.2b).
+        __fe_raise_invalid();
         return fromRep(qnanRep);
+      }
     }
 
     if (bAbs == infRep) {
-      // non-zero * infinity = +/- infinity
-      if (aAbs)
+      if (aAbs) {
+        // non-zero * infinity = +/- infinity
         return fromRep(bAbs | productSign);
-      // zero * infinity = NaN
-      else
+      } else {
+        // zero * infinity = NaN, raises invalid (IEEE-754-2019 7.2b).
+        __fe_raise_invalid();
         return fromRep(qnanRep);
+      }
     }
 
     // zero * anything = +/- zero

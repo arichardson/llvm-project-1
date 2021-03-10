@@ -50,16 +50,27 @@ static __inline fp_t __divXf3__(fp_t a, fp_t b) {
     const rep_t bAbs = toRep(b) & absMask;
 
     // NaN / anything = qNaN
-    if (aAbs > infRep)
+    if (aAbs > infRep) {
+      // Raise invalid if one of the operands is a sNaN (IEEE-754-2019 7.2a).
+      if ((toRep(a) & quietBit) == 0 || (bAbs > infRep && (toRep(b) & quietBit) == 0))
+        __fe_raise_invalid();
       return fromRep(toRep(a) | quietBit);
+    }
     // anything / NaN = qNaN
-    if (bAbs > infRep)
+    if (bAbs > infRep) {
+      // Raise invalid if one of the operands is a sNaN (IEEE-754-2019 7.2a).
+      if ((toRep(b) & quietBit) == 0 || (aAbs > infRep && (toRep(a) & quietBit) == 0))
+        __fe_raise_invalid();
       return fromRep(toRep(b) | quietBit);
+    }
 
     if (aAbs == infRep) {
       // infinity / infinity = NaN
-      if (bAbs == infRep)
+      if (bAbs == infRep) {
+        // infinity / infinity raises invalid (IEEE-754-2019 7.2e).
+        __fe_raise_invalid();
         return fromRep(qnanRep);
+      }
       // infinity / anything else = +/- infinity
       else
         return fromRep(aAbs | quotientSign);
@@ -71,15 +82,23 @@ static __inline fp_t __divXf3__(fp_t a, fp_t b) {
 
     if (!aAbs) {
       // zero / zero = NaN
-      if (!bAbs)
+      if (!bAbs) {
+        // zero / zero raises invalid (IEEE-754-2019 7.2e).
+        __fe_raise_invalid();
         return fromRep(qnanRep);
+      }
       // zero / anything else = +/- zero
       else
         return fromRep(quotientSign);
     }
     // anything else / zero = +/- infinity
-    if (!bAbs)
+    if (!bAbs) {
+      // DIVBYZERO if dividend is a finite non-zero number (IEEE-754-2019 7.3).
+      // We handled the a==infinity, a==zero, and a==Nan cases earlier so
+      // it must be a finite non-zero number now.
+      __fe_raise_divbyzero();
       return fromRep(infRep | quotientSign);
+    }
 
     // One or both of a or b is denormal.  The other (if applicable) is a
     // normal number.  Renormalize one or both of a and b, and set scale to

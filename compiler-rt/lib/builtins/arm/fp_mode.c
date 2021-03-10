@@ -18,6 +18,8 @@
                         ARM_DOWNWARD | ARM_TOWARDZERO)
 #define ARM_RMODE_SHIFT 22
 
+#define ARM_INVALID     0x01
+#define ARM_DIVBYZERO   0x02
 #define ARM_INEXACT     0x10
 
 #ifndef __ARM_FP
@@ -53,6 +55,28 @@ int __fe_raise_inexact() {
   uint32_t fpscr;
   __asm__ __volatile__("vmrs  %0, fpscr" : "=r" (fpscr));
   __asm__ __volatile__("vmsr  fpscr, %0" : : "ri" (fpscr | ARM_INEXACT));
+  return 0;
+#else
+  return 0;
+#endif
+}
+
+int __fe_raise_invalid() {
+#ifdef __ARM_FP
+  uint32_t fpscr;
+  __asm__ __volatile__("vmrs  %0, fpscr" : "=r" (fpscr));
+  __asm__ __volatile__("vmsr  fpscr, %0" : : "ri" (fpscr | ARM_INVALID));
+  return 0;
+#else
+  return 0;
+#endif
+}
+
+int __fe_raise_divbyzero() {
+#ifdef __ARM_FP
+  uint32_t fpscr;
+  __asm__ __volatile__("vmrs  %0, fpscr" : "=r" (fpscr));
+  __asm__ __volatile__("vmsr  fpscr, %0" : : "ri" (fpscr | ARM_DIVBYZERO));
   return 0;
 #else
   return 0;

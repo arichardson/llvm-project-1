@@ -24,16 +24,27 @@ static __inline fp_t __addXf3__(fp_t a, fp_t b) {
   if (aAbs - REP_C(1) >= infRep - REP_C(1) ||
       bAbs - REP_C(1) >= infRep - REP_C(1)) {
     // NaN + anything = qNaN
-    if (aAbs > infRep)
+    if (aAbs > infRep) {
+      // Raise invalid if one of the operands is a sNaN (IEEE-754-2019 7.2a).
+      if ((aRep & quietBit) == 0 || (bAbs > infRep && (bRep & quietBit) == 0))
+        __fe_raise_invalid();
       return fromRep(toRep(a) | quietBit);
+    }
     // anything + NaN = qNaN
-    if (bAbs > infRep)
+    if (bAbs > infRep) {
+      // Raise invalid if one of the operands is a sNaN (IEEE-754-2019 7.2a).
+      if ((bRep & quietBit) == 0 || (aAbs > infRep && (aRep & quietBit) == 0))
+        __fe_raise_invalid();
       return fromRep(toRep(b) | quietBit);
+    }
 
     if (aAbs == infRep) {
       // +/-infinity + -/+infinity = qNaN
-      if ((toRep(a) ^ toRep(b)) == signBit)
+      if ((toRep(a) ^ toRep(b)) == signBit) {
+        // Magnitude subtraction of inf raises invalid (IEEE-754-2019 7.2d).
+        __fe_raise_invalid();
         return fromRep(qnanRep);
+      }
       // +/-infinity + anything remaining = +/- infinity
       else
         return a;

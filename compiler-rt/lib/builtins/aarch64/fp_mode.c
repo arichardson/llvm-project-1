@@ -18,6 +18,8 @@
                             AARCH64_DOWNWARD | AARCH64_TOWARDZERO)
 #define AARCH64_RMODE_SHIFT 22
 
+#define AARCH64_INVALID     0x1
+#define AARCH64_DIVBYZERO   0x2
 #define AARCH64_INEXACT     0x10
 
 #ifndef __ARM_FP
@@ -53,6 +55,28 @@ int __fe_raise_inexact() {
   uint64_t fpsr;
   __asm__ __volatile__("mrs  %0, fpsr" : "=r" (fpsr));
   __asm__ __volatile__("msr  fpsr, %0" : : "ri" (fpsr | AARCH64_INEXACT));
+  return 0;
+#else
+  return 0;
+#endif
+}
+
+int __fe_raise_invalid() {
+#ifdef __ARM_FP
+  uint64_t fpsr;
+  __asm__ __volatile__("mrs  %0, fpsr" : "=r" (fpsr));
+  __asm__ __volatile__("msr  fpsr, %0" : : "ri" (fpsr | AARCH64_INVALID));
+  return 0;
+#else
+  return 0;
+#endif
+}
+
+int __fe_raise_divbyzero() {
+#ifdef __ARM_FP
+  uint64_t fpsr;
+  __asm__ __volatile__("mrs  %0, fpsr" : "=r" (fpsr));
+  __asm__ __volatile__("msr  fpsr, %0" : : "ri" (fpsr | AARCH64_DIVBYZERO));
   return 0;
 #else
   return 0;

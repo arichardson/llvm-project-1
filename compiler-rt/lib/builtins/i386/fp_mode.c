@@ -37,3 +37,15 @@ int __fe_raise_inexact() {
   __asm__ __volatile__ ("fdivs %1" : "+t" (f) : "m" (g));
   return 0;
 }
+
+int __fe_raise_invalid() {
+  float inf = __builtin_inff();
+  __asm__ __volatile__ ("fdivs %1" : "+t" (inf) : "m" (inf));
+  return 0;
+}
+
+int __fe_raise_divbyzero() {
+  float f = 1.0f, g = 0.0f;
+  __asm__ __volatile__ ("fdivs %1" : "+t" (f) : "m" (g));
+  return 0;
+}
