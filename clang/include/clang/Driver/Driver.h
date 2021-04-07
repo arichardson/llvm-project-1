@@ -222,8 +222,13 @@ public:
   CC1ToolFunc CC1Main = nullptr;
 
 private:
-  /// Raw target triple.
-  std::string TargetTriple;
+  /// Raw target triple as passed to -target (or the default value).
+  std::string RawTargetTriple;
+  /// Effective target triple (raw triple adjusted for -m32/etc. but not
+  /// normalized, since it is used as a path prefix).
+  std::string TargetTripleStr;
+  /// Normalized triple adjusted for command line flags (-m32/etc.)
+  llvm::Triple EffectiveTargetTriple;
 
   /// Name to use when invoking gcc/g++.
   std::string CCCGenericGCCName;
@@ -337,7 +342,11 @@ public:
   const std::string &getTitle() { return DriverTitle; }
   void setTitle(std::string Value) { DriverTitle = std::move(Value); }
 
-  std::string getTargetTriple() const { return TargetTriple; }
+  /// Get the non-normalized effective target triple. For example, clang
+  /// -target=x86_64-linux -m32 returns i386-linux, not i386-unknown-linux.
+  std::string getTargetTriple() const {
+    return TargetTripleStr.empty() ? RawTargetTriple : TargetTripleStr;
+  }
 
   /// Get the path to the main clang executable.
   const char *getClangProgramPath() const {

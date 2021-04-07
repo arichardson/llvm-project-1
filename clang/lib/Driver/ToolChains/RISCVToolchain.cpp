@@ -127,7 +127,8 @@ std::string RISCVToolChain::computeSysRoot() const {
     llvm::sys::path::append(SysRootDir, LibDir, "..", TripleStr);
   } else {
     // Use the triple as provided to the driver. Unlike the parsed triple
-    // this has not been normalized to always contain every field.
+    // this has not been normalized to always contain every field (but flags
+    // such as -m32 may have changed individual components).
     llvm::sys::path::append(SysRootDir, getDriver().Dir, "..",
                             getDriver().getTargetTriple());
   }

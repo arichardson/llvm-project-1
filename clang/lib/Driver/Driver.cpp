@@ -139,9 +139,10 @@ Driver::Driver(StringRef ClangExecutable, StringRef TargetTriple,
       CCPrintHeadersFilename(), CCLogDiagnosticsFilename(),
       CCCPrintBindings(false), CCPrintOptions(false), CCPrintHeaders(false),
       CCLogDiagnostics(false), CCGenDiagnostics(false),
-      CCPrintProcessStats(false), TargetTriple(TargetTriple),
-      CCCGenericGCCName(""), Saver(Alloc), CheckInputsExist(true),
-      GenReproducer(false), SuppressMissingInputWarning(false) {
+      CCPrintProcessStats(false), RawTargetTriple(TargetTriple),
+      EffectiveTargetTriple(TargetTriple), CCCGenericGCCName(""), Saver(Alloc),
+      CheckInputsExist(true), GenReproducer(false),
+      SuppressMissingInputWarning(false) {
   // Provide a sane fallback if no VFS is specified.
   if (!this->VFS)
     this->VFS = llvm::vfs::getRealFileSystem();
@@ -437,8 +438,7 @@ DerivedArgList *Driver::TranslateInputArgs(const InputArgList &Args) const {
 ///
 /// This routine provides the logic to compute a target triple from various
 /// args passed to the driver and the default triple string.
-static llvm::Triple computeTargetTriple(const Driver &D,
-                                        StringRef TargetTriple,
+static llvm::Triple computeTargetTriple(const Driver &D, StringRef TargetTriple,
                                         const ArgList &Args,
                                         StringRef DarwinArchName = "") {
   // FIXME: Already done in Compilation *Driver::BuildCompilation
@@ -1142,15 +1142,15 @@ Compilation *Driver::BuildCompilation(ArrayRef<const char *> ArgList) {
   // and getToolChain is const.
   if (IsCLMode()) {
     // clang-cl targets MSVC-style Win32.
-    llvm::Triple T(TargetTriple);
+    llvm::Triple T(RawTargetTriple);
     T.setOS(llvm::Triple::Win32);
     T.setVendor(llvm::Triple::PC);
     T.setEnvironment(llvm::Triple::MSVC);
     T.setObjectFormat(llvm::Triple::COFF);
-    TargetTriple = T.str();
+    RawTargetTriple = T.str();
   }
   if (const Arg *A = Args.getLastArg(options::OPT_target))
-    TargetTriple = A->getValue();
+    RawTargetTriple = A->getValue();
   if (const Arg *A = Args.getLastArg(options::OPT_ccc_install_dir))
     Dir = InstalledDir = A->getValue();
   for (const Arg *A : Args.filtered(options::OPT_B)) {
@@ -1206,9 +1206,43 @@ Compilation *Driver::BuildCompilation(ArrayRef<const char *> ArgList) {
   // Perform the default argument translations.
   DerivedArgList *TranslatedArgs = TranslateInputArgs(*UArgs);
 
+  // If command line flags such as -m32, etc. changed parts of the triple that
+  // are not just changes to normalization, we also need to update the raw
+  // triple string that is used to find tools. This ensures e.g. that clang -m32
+  // searches for i386-*-ld instead of x86_64-*-ld when linking (and also uses
+  // the triple-prefixed library paths).
+  EffectiveTargetTriple =
+      computeTargetTriple(*this, RawTargetTriple, *UArgs, "");
+  // Note: It is important that we don't normalize this triple to avoid adding
+  // empty components (i.e. no additional -unknown compared to the raw one).
+  llvm::Triple NormalizedRawTriple(llvm::Triple::normalize(RawTargetTriple));
+  if (EffectiveTargetTriple != NormalizedRawTriple) {
+    // computeTargetTriple() may have added additional empty/-unknown
+    // components. De-normalize it to create the prefixed search paths:
+    // `clang -target x86_64-freebsd12 -m32` should search for programs and
+    // libraries using i386-freebsd12, not i386-unknown-freebsd12.
+    llvm::SmallVector<StringRef, 5> RawComponents;
+    StringRef(RawTargetTriple).split(RawComponents, '-');
+    llvm::SmallVector<StringRef, 5> EffectiveComponents;
+    StringRef(EffectiveTargetTriple.str()).split(EffectiveComponents, '-');
+    // Drop any empty/"unknown" components that are not also present in the raw
+    // target triple.
+    llvm::SmallString<64> AdjustedTriple = EffectiveComponents[0];
+    for (size_t EI = 1, RI = 1; EI < EffectiveComponents.size(); EI++) {
+      const StringRef EffectiveComp = EffectiveComponents[EI];
+      // Skip extra intermediate empty/unknown as well trailing empty parts.
+      if (EffectiveComp.empty() || EffectiveComp == "unknown") {
+        if (RI >= RawComponents.size() || EffectiveComp != RawComponents[RI])
+          continue;
+      }
+      AdjustedTriple += "-";
+      AdjustedTriple += EffectiveComp;
+      RI++;
+    }
+    TargetTripleStr = std::string(AdjustedTriple);
+  }
   // Owned by the host.
-  const ToolChain &TC = getToolChain(
-      *UArgs, computeTargetTriple(*this, TargetTriple, *UArgs));
+  const ToolChain &TC = getToolChain(*UArgs, EffectiveTargetTriple);
 
   // The compilation takes ownership of Args.
   Compilation *C = new Compilation(*this, TC, UArgs.release(), TranslatedArgs,
@@ -4624,9 +4658,9 @@ InputInfo Driver::BuildJobsForActionNoCache(
     StringRef ArchName = BAA->getArchName();
 
     if (!ArchName.empty())
-      TC = &getToolChain(C.getArgs(),
-                         computeTargetTriple(*this, TargetTriple,
-                                             C.getArgs(), ArchName));
+      TC = &getToolChain(
+          C.getArgs(),
+          computeTargetTriple(*this, RawTargetTriple, C.getArgs(), ArchName));
     else
       TC = &C.getDefaultToolChain();
 
@@ -4834,8 +4868,7 @@ InputInfo Driver::BuildJobsForActionNoCache(
 }
 
 const char *Driver::getDefaultImageName() const {
-  llvm::Triple Target(llvm::Triple::normalize(TargetTriple));
-  return Target.isOSWindows() ? "a.exe" : "a.out";
+  return EffectiveTargetTriple.isOSWindows() ? "a.exe" : "a.out";
 }
 
 /// Create output filename based on ArgValue, which could either be a
@@ -5154,8 +5187,15 @@ std::string Driver::GetFilePath(StringRef Name, const ToolChain &TC) const {
 void Driver::generatePrefixedToolNames(
     StringRef Tool, const ToolChain &TC,
     SmallVectorImpl<std::string> &Names) const {
-  // FIXME: Needs a better variable than TargetTriple
-  Names.emplace_back((TargetTriple + "-" + Tool).str());
+  // Note: When searching e.g. for ld with `-target x86_64-freebsd -m32`, we
+  // prefer i386-freebsd-ld, but assume that x86_64-freebsd-ld can also be used
+  // for linking and should be preferred over a plain ld.
+  // However, it is important that the library search paths (e.g. for
+  // sanitizers) use the effective triple and not the raw target triple since we
+  // might otherwise end up trying to link a 32-bit program a 64-bit library.
+  Names.emplace_back((getTargetTriple() + "-" + Tool).str());
+  if (getTargetTriple() != RawTargetTriple)
+    Names.emplace_back((RawTargetTriple + "-" + Tool).str());
   Names.emplace_back(Tool);
 }
 
