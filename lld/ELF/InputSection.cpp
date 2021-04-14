@@ -1034,8 +1034,13 @@ void InputSectionBase::relocateAlloc(uint8_t *buf, uint8_t *bufEnd) {
       continue;
     uint64_t offset = rel.offset;
     uint8_t *bufLoc = buf + offset;
-    RelType type = rel.type;
 
+    if (rel.expr == R_ADDEND) {
+      target->relocate(bufLoc, rel, rel.addend);
+      continue;
+    }
+
+    RelType type = rel.type;
     uint64_t addrLoc = getOutputSection()->addr + offset;
     if (auto *sec = dyn_cast<InputSection>(this))
       addrLoc += sec->outSecOff;
