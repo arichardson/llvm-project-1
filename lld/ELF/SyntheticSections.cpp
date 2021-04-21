@@ -1626,6 +1626,17 @@ void RelocationBaseSection::addRelativeReloc(
            sym, addend, expr, addendRelType);
 }
 
+void RelocationBaseSection::addRelativeRelocIfNonPreemptible(
+    RelType dynType, InputSectionBase *isec, uint64_t offsetInSec, Symbol &sym,
+    RelType addendRelType) {
+  // No need to write an addend to the section for preemptible symbols.
+  if (sym.isPreemptible)
+    addReloc({dynType, isec, offsetInSec, DynamicReloc::AgainstSymbol, sym});
+  else
+    addReloc(DynamicReloc::RelativeWithTargetVA, dynType, isec, offsetInSec,
+             sym, 0, R_ABS, addendRelType);
+}
+
 void RelocationBaseSection::addReloc(DynamicReloc::Kind kind, RelType dynType,
                                      InputSectionBase *inputSec,
                                      uint64_t offsetInSec, Symbol &sym,
