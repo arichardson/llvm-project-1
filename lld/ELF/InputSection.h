@@ -200,7 +200,7 @@ public:
   // Returns a source location string. Used to construct an error message.
   template <class ELFT> std::string getLocation(uint64_t offset);
   std::string getSrcMsg(const Symbol &sym, uint64_t offset);
-  std::string getObjMsg(uint64_t offset);
+  std::string getObjMsg(uint64_t offset) const;
 
   // Each section knows how to relocate itself. These functions apply
   // relocations, assuming that Buf points to this section's copy in

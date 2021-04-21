@@ -340,7 +340,7 @@ std::string InputSectionBase::getSrcMsg(const Symbol &sym, uint64_t offset) {
 // or
 //
 //   path/to/foo.o:(function bar) in archive path/to/bar.a
-std::string InputSectionBase::getObjMsg(uint64_t off) {
+std::string InputSectionBase::getObjMsg(uint64_t off) const {
   std::string filename = std::string(file->getName());
 
   std::string archive;
