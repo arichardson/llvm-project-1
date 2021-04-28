@@ -286,15 +286,15 @@ handleTlsRelocation(RelType type, Symbol &sym, InputSectionBase &c,
           in.got->relocations.push_back(
               {R_ADDEND, target->symbolicRel, off, 1, &sym});
         else
-          mainPart->relaDyn->addReloc(target->tlsModuleIndexRel, in.got, off,
-                                      sym);
+          mainPart->relaDyn->addSymbolReloc(target->tlsModuleIndexRel, in.got,
+                                            off, sym);
 
         // If the symbol is preemptible we need the dynamic linker to write
         // the offset too.
         uint64_t offsetOff = off + config->wordsize;
         if (sym.isPreemptible)
-          mainPart->relaDyn->addReloc(target->tlsOffsetRel, in.got, offsetOff,
-                                      sym);
+          mainPart->relaDyn->addSymbolReloc(target->tlsOffsetRel, in.got,
+                                            offsetOff, sym);
         else
           in.got->relocations.push_back(
               {R_ABS, target->tlsOffsetRel, offsetOff, 0, &sym});
@@ -311,8 +311,8 @@ handleTlsRelocation(RelType type, Symbol &sym, InputSectionBase &c,
            addend, &sym});
       if (!sym.isInGot()) {
         in.got->addEntry(sym);
-        mainPart->relaDyn->addReloc(target->tlsGotRel, in.got,
-                                    sym.getGotOffset(), sym);
+        mainPart->relaDyn->addSymbolReloc(target->tlsGotRel, in.got,
+                                          sym.getGotOffset(), sym);
       }
     } else {
       c.relocations.push_back(
@@ -622,7 +622,7 @@ template <class ELFT> static void addCopyRelSymbol(SharedSymbol &ss) {
   for (SharedSymbol *sym : getSymbolsAt<ELFT>(ss))
     replaceWithDefined(*sym, sec, 0, sym->size);
 
-  mainPart->relaDyn->addReloc(target->copyRel, sec, 0, ss);
+  mainPart->relaDyn->addSymbolReloc(target->copyRel, sec, 0, ss);
 }
 
 // MIPS has an odd notion of "paired" relocations to calculate addends.
@@ -1180,8 +1180,8 @@ static void processRelocAux(InputSectionBase &sec, RelExpr expr, RelType type,
     } else if (rel != 0) {
       if (config->emachine == EM_MIPS && rel == target->symbolicRel)
         rel = target->relativeRel;
-      sec.getPartition().relaDyn->addReloc(rel, &sec, offset, sym, addend,
-                                           type);
+      sec.getPartition().relaDyn->addSymbolReloc(rel, &sec, offset, sym, addend,
+                                                 type);
 
       // MIPS ABI turns using of GOT and dynamic relocations inside out.
       // While regular ABI uses dynamic relocations to fill up GOT entries
@@ -1425,7 +1425,7 @@ static void scanReloc(InputSectionBase &sec, OffsetGetter &getOffset, RelTy *&i,
   // direct relocation on through.
   if (sym.isGnuIFunc() && config->zIfuncNoplt) {
     sym.exportDynamic = true;
-    mainPart->relaDyn->addReloc(type, &sec, offset, sym, addend, type);
+    mainPart->relaDyn->addSymbolReloc(type, &sec, offset, sym, addend, type);
     return;
   }
 
