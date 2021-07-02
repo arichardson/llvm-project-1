@@ -800,8 +800,12 @@ private:
   /// \param Name Name of the variable.
   llvm::Constant *getOrCreateInternalVariable(llvm::Type *Ty,
                                               const llvm::Twine &Name,
-                                              unsigned AddressSpace = 0);
-
+                                              unsigned AddressSpace);
+  LLVM_ATTRIBUTE_DEPRECATED(llvm::Constant *getOrCreateInternalVariable(
+                                llvm::Type *Ty, const llvm::Twine &Name),
+                            "use the overload with an explicit address space") {
+    return getOrCreateInternalVariable(Ty, Name, 0);
+  }
   /// Set of threadprivate variables with the generated initializer.
   llvm::StringSet<> ThreadPrivateWithDefinition;
 

@@ -875,7 +875,7 @@ private:
   /// must be the same.
   /// \param Name Name of the variable.
   Constant *getOrCreateOMPInternalVariable(Type *Ty, const Twine &Name,
-                                           unsigned AddressSpace = 0);
+                                           unsigned AddressSpace);
 
   /// Returns corresponding lock object for the specified critical region
   /// name. If the lock object does not exist it is created, otherwise the
