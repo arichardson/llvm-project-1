@@ -343,15 +343,23 @@ public:
   /// Return the pointer type for the given address space, defaults to
   /// the pointer type from the data layout.
   /// FIXME: The default needs to be removed once all the code is updated.
-  virtual MVT getPointerTy(const DataLayout &DL, uint32_t AS = 0) const {
+  virtual MVT getPointerTy(const DataLayout &DL, uint32_t AS) const {
     return MVT::getIntegerVT(DL.getPointerSizeInBits(AS));
+  }
+  LLVM_ATTRIBUTE_DEPRECATED(MVT getPointerTy(const DataLayout &DL) const,
+                            "use the overload with an explicit address space") {
+    return getPointerTy(DL, 0);
   }
 
   /// Return the in-memory pointer type for the given address space, defaults to
   /// the pointer type from the data layout.  FIXME: The default needs to be
   /// removed once all the code is updated.
-  MVT getPointerMemTy(const DataLayout &DL, uint32_t AS = 0) const {
+  MVT getPointerMemTy(const DataLayout &DL, uint32_t AS) const {
     return MVT::getIntegerVT(DL.getPointerSizeInBits(AS));
+  }
+  LLVM_ATTRIBUTE_DEPRECATED(MVT getPointerMemTy(const DataLayout &DL) const,
+                            "use the overload with an explicit address space") {
+    return getPointerMemTy(DL, 0);
   }
 
   /// Return the type for frame index, which is determined by
@@ -1626,7 +1634,7 @@ public:
   /// helps to ensure that such replacements don't generate code that causes an
   /// alignment error (trap) on the target machine.
   virtual bool allowsMisalignedMemoryAccesses(
-      EVT, unsigned AddrSpace = 0, Align Alignment = Align(1),
+      EVT, unsigned AddrSpace, Align Alignment = Align(1),
       MachineMemOperand::Flags Flags = MachineMemOperand::MONone,
       bool * /*Fast*/ = nullptr) const {
     return false;
@@ -1634,7 +1642,7 @@ public:
 
   /// LLT handling variant.
   virtual bool allowsMisalignedMemoryAccesses(
-      LLT, unsigned AddrSpace = 0, Align Alignment = Align(1),
+      LLT, unsigned AddrSpace, Align Alignment = Align(1),
       MachineMemOperand::Flags Flags = MachineMemOperand::MONone,
       bool * /*Fast*/ = nullptr) const {
     return false;
@@ -1645,8 +1653,8 @@ public:
   /// allowed, the optional final parameter returns if the access is also fast
   /// (as defined by the target).
   bool allowsMemoryAccessForAlignment(
-      LLVMContext &Context, const DataLayout &DL, EVT VT,
-      unsigned AddrSpace = 0, Align Alignment = Align(1),
+      LLVMContext &Context, const DataLayout &DL, EVT VT, unsigned AddrSpace,
+      Align Alignment = Align(1),
       MachineMemOperand::Flags Flags = MachineMemOperand::MONone,
       bool *Fast = nullptr) const;
 
@@ -1665,7 +1673,7 @@ public:
   /// target).
   virtual bool
   allowsMemoryAccess(LLVMContext &Context, const DataLayout &DL, EVT VT,
-                     unsigned AddrSpace = 0, Align Alignment = Align(1),
+                     unsigned AddrSpace, Align Alignment = Align(1),
                      MachineMemOperand::Flags Flags = MachineMemOperand::MONone,
                      bool *Fast = nullptr) const;
 
@@ -2365,11 +2373,17 @@ public:
   /// TODO: Remove default argument
   virtual InstructionCost getScalingFactorCost(const DataLayout &DL,
                                                const AddrMode &AM, Type *Ty,
-                                               unsigned AS = 0) const {
+                                               unsigned AS) const {
     // Default: assume that any scaling factor used in a legal AM is free.
     if (isLegalAddressingMode(DL, AM, Ty, AS))
       return 0;
     return -1;
+  }
+  LLVM_ATTRIBUTE_DEPRECATED(
+      InstructionCost getScalingFactorCost(const DataLayout &DL,
+                                           const AddrMode &AM, Type *Ty) const,
+      "use the overload with an explicit address space") {
+    return getScalingFactorCost(DL, AM, Ty, 0);
   }
 
   /// Return true if the specified immediate is legal icmp immediate, that is

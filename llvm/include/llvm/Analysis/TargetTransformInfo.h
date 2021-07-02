@@ -604,7 +604,7 @@ public:
   /// TODO: Handle pre/postinc as well.
   bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV, int64_t BaseOffset,
                              bool HasBaseReg, int64_t Scale,
-                             unsigned AddrSpace = 0,
+                             unsigned AddrSpace,
                              Instruction *I = nullptr) const;
 
   /// Return true if LSR cost of C1 is lower than C1.
@@ -685,8 +685,7 @@ public:
   /// TODO: Handle pre/postinc as well.
   InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
                                        int64_t BaseOffset, bool HasBaseReg,
-                                       int64_t Scale,
-                                       unsigned AddrSpace = 0) const;
+                                       int64_t Scale, unsigned AddrSpace) const;
 
   /// Return true if the loop strength reduce pass should make
   /// Instruction* based TTI queries to isLegalAddressingMode(). This is
@@ -796,7 +795,7 @@ public:
 
   /// Determine if the target supports unaligned memory accesses.
   bool allowsMisalignedMemoryAccesses(LLVMContext &Context, unsigned BitWidth,
-                                      unsigned AddressSpace = 0,
+                                      unsigned AddressSpace,
                                       Align Alignment = Align(1),
                                       bool *Fast = nullptr) const;
 
