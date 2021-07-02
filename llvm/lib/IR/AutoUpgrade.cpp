@@ -1025,7 +1025,7 @@ GlobalVariable *llvm::UpgradeGlobalVariable(GlobalVariable *GV) {
   LLVMContext &C = GV->getContext();
   IRBuilder<> IRB(C);
   auto EltTy = StructType::get(STy->getElementType(0), STy->getElementType(1),
-                               IRB.getInt8PtrTy());
+                               IRB.getInt8PtrTy(GV->getAddressSpace()));
   Constant *Init = GV->getInitializer();
   unsigned N = Init->getNumOperands();
   std::vector<Constant *> NewCtors(N);
@@ -1033,12 +1033,13 @@ GlobalVariable *llvm::UpgradeGlobalVariable(GlobalVariable *GV) {
     auto Ctor = cast<Constant>(Init->getOperand(i));
     NewCtors[i] = ConstantStruct::get(
         EltTy, Ctor->getAggregateElement(0u), Ctor->getAggregateElement(1),
-        Constant::getNullValue(IRB.getInt8PtrTy()));
+        Constant::getNullValue(IRB.getInt8PtrTy(GV->getAddressSpace())));
   }
   Constant *NewInit = ConstantArray::get(ArrayType::get(EltTy, N), NewCtors);
 
   return new GlobalVariable(NewInit->getType(), false, GV->getLinkage(),
-                            NewInit, GV->getName());
+                            NewInit, GV->getName(), GV->getThreadLocalMode(),
+                            GV->getAddressSpace());
 }
 
 // Handles upgrading SSE2/AVX2/AVX512BW PSLLDQ intrinsics by converting them
@@ -1385,8 +1386,9 @@ static Value *UpgradeMaskedStore(IRBuilder<> &Builder,
                                  Value *Ptr, Value *Data, Value *Mask,
                                  bool Aligned) {
   // Cast the pointer to the right type.
-  Ptr = Builder.CreateBitCast(Ptr,
-                              llvm::PointerType::getUnqual(Data->getType()));
+  Ptr = Builder.CreateBitCast(
+      Ptr, llvm::PointerType::get(Data->getType(),
+                                  Ptr->getType()->getPointerAddressSpace()));
   const Align Alignment =
       Aligned
           ? Align(Data->getType()->getPrimitiveSizeInBits().getFixedSize() / 8)
@@ -1408,7 +1410,8 @@ static Value *UpgradeMaskedLoad(IRBuilder<> &Builder,
                                 bool Aligned) {
   Type *ValTy = Passthru->getType();
   // Cast the pointer to the right type.
-  Ptr = Builder.CreateBitCast(Ptr, llvm::PointerType::getUnqual(ValTy));
+  Ptr = Builder.CreateBitCast(
+      Ptr, ValTy->getPointerTo(Ptr->getType()->getPointerAddressSpace()));
   const Align Alignment =
       Aligned
           ? Align(Passthru->getType()->getPrimitiveSizeInBits().getFixedSize() /
@@ -1840,7 +1843,8 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
       // Nontemporal (unaligned) store of the 0'th element of the float/double
       // vector.
       Type *SrcEltTy = cast<VectorType>(Arg1->getType())->getElementType();
-      PointerType *EltPtrTy = PointerType::getUnqual(SrcEltTy);
+      PointerType *EltPtrTy =
+          SrcEltTy->getPointerTo(Arg0->getType()->getPointerAddressSpace());
       Value *Addr = Builder.CreateBitCast(Arg0, EltPtrTy, "cast");
       Value *Extract =
           Builder.CreateExtractElement(Arg1, (uint64_t)0, "extractelement");
@@ -1865,9 +1869,11 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
       Value *Arg1 = CI->getArgOperand(1);
 
       // Convert the type of the pointer to a pointer to the stored type.
-      Value *BC = Builder.CreateBitCast(Arg0,
-                                        PointerType::getUnqual(Arg1->getType()),
-                                        "cast");
+      Value *BC =
+          Builder.CreateBitCast(Arg0,
+                                Arg1->getType()->getPointerTo(
+                                    Arg0->getType()->getPointerAddressSpace()),
+                                "cast");
       StoreInst *SI = Builder.CreateAlignedStore(
           Arg1, BC,
           Align(Arg1->getType()->getPrimitiveSizeInBits().getFixedSize() / 8));
@@ -1885,9 +1891,11 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
       auto *NewVecTy = FixedVectorType::get(Type::getInt64Ty(C), 2);
       Value *BC0 = Builder.CreateBitCast(Arg1, NewVecTy, "cast");
       Value *Elt = Builder.CreateExtractElement(BC0, (uint64_t)0);
-      Value *BC = Builder.CreateBitCast(Arg0,
-                                        PointerType::getUnqual(Elt->getType()),
-                                        "cast");
+      Value *BC =
+          Builder.CreateBitCast(Arg0,
+                                Elt->getType()->getPointerTo(
+                                    Arg0->getType()->getPointerAddressSpace()),
+                                "cast");
       Builder.CreateAlignedStore(Elt, BC, Align(1));
 
       // Remove intrinsic.
@@ -1901,9 +1909,11 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
       Value *Arg0 = CI->getArgOperand(0);
       Value *Arg1 = CI->getArgOperand(1);
 
-      Arg0 = Builder.CreateBitCast(Arg0,
-                                   PointerType::getUnqual(Arg1->getType()),
-                                   "cast");
+      Arg0 = Builder.CreateBitCast(
+          Arg0,
+          PointerType::get(Arg1->getType(),
+                           Arg0->getType()->getPointerAddressSpace()),
+          "cast");
       Builder.CreateAlignedStore(Arg1, Arg0, Align(1));
 
       // Remove intrinsic.
@@ -2303,8 +2313,10 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
       Type *PtrTy = ResultTy->getElementType();
 
       // Cast the pointer to element type.
-      Value *Ptr = Builder.CreateBitCast(CI->getOperand(0),
-                                         llvm::PointerType::getUnqual(PtrTy));
+      Value *Ptr = Builder.CreateBitCast(
+          CI->getOperand(0),
+          llvm::PointerType::get(
+              PtrTy, CI->getOperand(0)->getType()->getPointerAddressSpace()));
 
       Value *MaskVec = getX86MaskVec(Builder, CI->getArgOperand(2),
                                      ResultTy->getNumElements());
@@ -2318,8 +2330,10 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
       Type *PtrTy = ResultTy->getElementType();
 
       // Cast the pointer to element type.
-      Value *Ptr = Builder.CreateBitCast(CI->getOperand(0),
-                                         llvm::PointerType::getUnqual(PtrTy));
+      Value *Ptr = Builder.CreateBitCast(
+          CI->getOperand(0),
+          llvm::PointerType::get(
+              PtrTy, CI->getOperand(0)->getType()->getPointerAddressSpace()));
 
       Value *MaskVec =
           getX86MaskVec(Builder, CI->getArgOperand(2),
@@ -2414,8 +2428,10 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
       auto *VecTy = cast<FixedVectorType>(CI->getType());
       Type *EltTy = VecTy->getElementType();
       unsigned EltNum = VecTy->getNumElements();
-      Value *Cast = Builder.CreateBitCast(CI->getArgOperand(0),
-                                          EltTy->getPointerTo());
+      auto PtrArg = CI->getArgOperand(0);
+      Value *Cast = Builder.CreateBitCast(
+          PtrArg,
+          EltTy->getPointerTo(PtrArg->getType()->getPointerAddressSpace()));
       Value *Load = Builder.CreateLoad(EltTy, Cast);
       Type *I32Ty = Type::getInt32Ty(C);
       Rep = UndefValue::get(VecTy);
@@ -2460,8 +2476,10 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
       Type *EltTy = cast<VectorType>(CI->getType())->getElementType();
       unsigned NumSrcElts = 128 / EltTy->getPrimitiveSizeInBits();
       auto *VT = FixedVectorType::get(EltTy, NumSrcElts);
-      Value *Op = Builder.CreatePointerCast(CI->getArgOperand(0),
-                                            PointerType::getUnqual(VT));
+      Value *Op = Builder.CreatePointerCast(
+          CI->getArgOperand(0),
+          PointerType::get(
+              VT, CI->getOperand(0)->getType()->getPointerAddressSpace()));
       Value *Load = Builder.CreateAlignedLoad(VT, Op, Align(1));
       if (NumSrcElts == 2)
         Rep = Builder.CreateShuffleVector(Load, ArrayRef<int>{0, 1, 0, 1});
@@ -3211,7 +3229,9 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
 
       // Convert the type of the pointer to a pointer to the stored type.
       Value *BC = Builder.CreateBitCast(
-          Ptr, PointerType::getUnqual(CI->getType()), "cast");
+          Ptr,
+          CI->getType()->getPointerTo(Ptr->getType()->getPointerAddressSpace()),
+          "cast");
       LoadInst *LI = Builder.CreateAlignedLoad(
           CI->getType(), BC,
           Align(CI->getType()->getPrimitiveSizeInBits().getFixedSize() / 8));
@@ -3589,8 +3609,10 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
       // Extract the second result and store it.
       Value *Data = Builder.CreateExtractValue(NewCall, 1);
       // Cast the pointer to the right type.
-      Value *Ptr = Builder.CreateBitCast(CI->getArgOperand(3),
-                                 llvm::PointerType::getUnqual(Data->getType()));
+      Value *Ptr = Builder.CreateBitCast(
+          CI->getArgOperand(3),
+          Data->getType()->getPointerTo(
+              CI->getArgOperand(3)->getType()->getPointerAddressSpace()));
       Builder.CreateAlignedStore(Data, Ptr, Align(1));
       // Replace the original call result with the first result of the new call.
       Value *CF = Builder.CreateExtractValue(NewCall, 0);
@@ -3839,8 +3861,10 @@ void llvm::UpgradeIntrinsicCall(CallInst *CI, Function *NewFn) {
     // Extract the second result and store it.
     Value *Data = Builder.CreateExtractValue(NewCall, 1);
     // Cast the pointer to the right type.
-    Value *Ptr = Builder.CreateBitCast(CI->getArgOperand(0),
-                                 llvm::PointerType::getUnqual(Data->getType()));
+    Value *Ptr = Builder.CreateBitCast(
+        CI->getArgOperand(0),
+        Data->getType()->getPointerTo(
+            CI->getArgOperand(0)->getType()->getPointerAddressSpace()));
     Builder.CreateAlignedStore(Data, Ptr, Align(1));
     // Replace the original call result with the first result of the new call.
     Value *TSC = Builder.CreateExtractValue(NewCall, 0);

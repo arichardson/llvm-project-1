@@ -26,6 +26,17 @@
 #include <cstdint>
 #include <iterator>
 
+// LLVM_NO_IMPLICIT_ADDRESS_SPACE can be defined to gradually migrate files
+// away from relying on the default value zero for address spaces.
+// This is helpful to avoid subtle bugs in targets that use a non-zero
+// address space for global variables or functions.
+#if !defined(LLVM_NO_IMPLICIT_ADDRESS_SPACE) ||                                \
+    LLVM_NO_IMPLICIT_ADDRESS_SPACE == 0
+#define LLVM_DEFAULT_AS_PARAM(name) unsigned name = 0
+#else
+#define LLVM_DEFAULT_AS_PARAM(name) unsigned name
+#endif
+
 namespace llvm {
 
 class IntegerType;
@@ -468,26 +479,36 @@ public:
   // Convenience methods for getting pointer types with one of the above builtin
   // types as pointee.
   //
-  static PointerType *getHalfPtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getBFloatPtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getFloatPtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getDoublePtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getX86_FP80PtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getFP128PtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getPPC_FP128PtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getX86_MMXPtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getX86_AMXPtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getIntNPtrTy(LLVMContext &C, unsigned N, unsigned AS = 0);
-  static PointerType *getInt1PtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getInt8PtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getInt16PtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getInt32PtrTy(LLVMContext &C, unsigned AS = 0);
-  static PointerType *getInt64PtrTy(LLVMContext &C, unsigned AS = 0);
+#define LLVM_DEFAULT_AS_PARAM(n) unsigned n = 0
+  static PointerType *getHalfPtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getBFloatPtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getFloatPtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getDoublePtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getX86_FP80PtrTy(LLVMContext &C,
+                                       LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getFP128PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getPPC_FP128PtrTy(LLVMContext &C,
+                                        LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getX86_MMXPtrTy(LLVMContext &C,
+                                      LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getX86_AMXPtrTy(LLVMContext &C,
+                                      LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getIntNPtrTy(LLVMContext &C, unsigned N,
+                                   LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getInt1PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getInt8PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getInt16PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getInt32PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
+  static PointerType *getInt64PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
 
   /// Return a pointer to the current type. This is equivalent to
   /// PointerType::get(Foo, AddrSpace).
   /// TODO: Remove this after opaque pointer transition is complete.
-  PointerType *getPointerTo(unsigned AddrSpace = 0) const;
+  PointerType *getPointerTo(unsigned AddrSpace) const;
+  LLVM_ATTRIBUTE_DEPRECATED(PointerType *getPointerTo(),
+                            "use the overload with an explicit address space") {
+    return getPointerTo(0);
+  }
 
 private:
   /// Derived types like structures and arrays are sized iff all of the members

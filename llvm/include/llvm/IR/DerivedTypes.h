@@ -650,13 +650,17 @@ public:
 
   /// This constructs a pointer to an object of the specified type in the
   /// default address space (address space zero).
-  static PointerType *getUnqual(Type *ElementType) {
+  LLVM_ATTRIBUTE_DEPRECATED(
+      static PointerType *getUnqual(Type *ElementType),
+      "use PointerType::get() with an address space instead") {
     return PointerType::get(ElementType, 0);
   }
 
   /// This constructs an opaque pointer to an object in the
   /// default address space (address space zero).
-  static PointerType *getUnqual(LLVMContext &C) {
+  LLVM_ATTRIBUTE_DEPRECATED(
+      static PointerType *getUnqual(LLVMContext &C),
+      "use PointerType::get() with an address space instead") {
     return PointerType::get(C, 0);
   }
 

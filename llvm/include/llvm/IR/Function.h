@@ -959,7 +959,11 @@ private:
 /// Null pointer access in non-zero address space is not considered undefined.
 /// Return value: false => null pointer dereference is undefined.
 /// Return value: true =>  null pointer dereference is not undefined.
-bool NullPointerIsDefined(const Function *F, unsigned AS = 0);
+bool NullPointerIsDefined(const Function *F, unsigned AS);
+LLVM_ATTRIBUTE_DEPRECATED(bool NullPointerIsDefined(const Function *F),
+                          "use the overload with an explicit address space") {
+  return NullPointerIsDefined(F, 0);
+}
 
 template <>
 struct OperandTraits<Function> : public HungoffOperandTraits<3> {};

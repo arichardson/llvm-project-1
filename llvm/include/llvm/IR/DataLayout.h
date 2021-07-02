@@ -365,13 +365,20 @@ public:
   /// Return target's alignment for stack-based pointers
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
-  Align getPointerPrefAlignment(unsigned AS = 0) const;
+  Align getPointerPrefAlignment(unsigned AS) const;
+  LLVM_ATTRIBUTE_DEPRECATED(Align getPointerPrefAlignment() const,
+                            "use the overload with an explicit address space") {
+    return getPointerPrefAlignment(0);
+  }
 
   /// Layout pointer size
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
   unsigned getPointerSize(unsigned AS = 0) const;
-
+  LLVM_ATTRIBUTE_DEPRECATED(unsigned getPointerSize() const,
+                            "use the overload with an explicit address space") {
+    return getPointerSize(0);
+  }
   /// Returns the maximum pointer size over all address spaces.
   unsigned getMaxPointerSize() const;
 
@@ -401,10 +408,13 @@ public:
   /// Layout pointer size, in bits
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
-  unsigned getPointerSizeInBits(unsigned AS = 0) const {
+  unsigned getPointerSizeInBits(unsigned AS) const {
     return getPointerSize(AS) * 8;
   }
-
+  LLVM_ATTRIBUTE_DEPRECATED(unsigned getPointerSizeInBits() const,
+                            "use the overload with an explicit address space") {
+    return getPointerSizeInBits(0);
+  }
   /// Returns the maximum pointer size over all address spaces.
   unsigned getMaxPointerSizeInBits() const {
     return getMaxPointerSize() * 8;
@@ -547,8 +557,11 @@ public:
 
   /// Returns an integer type with size at least as big as that of a
   /// pointer in the given address space.
-  IntegerType *getIntPtrType(LLVMContext &C, unsigned AddressSpace = 0) const;
-
+  IntegerType *getIntPtrType(LLVMContext &C, unsigned AddressSpace) const;
+  LLVM_ATTRIBUTE_DEPRECATED(IntegerType *getIntPtrType(LLVMContext &C) const,
+                            "use the overload with an explicit address space") {
+    return getIntPtrType(C, 0);
+  }
   /// Returns an integer (vector of integer) type with size at least as
   /// big as that of a pointer of the given pointer (vector of pointer) type.
   Type *getIntPtrType(Type *) const;

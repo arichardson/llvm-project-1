@@ -96,7 +96,7 @@ static void addByteCountSuffix(raw_ostream &OS, const Function *F,
   // Calculate arguments size total.
   unsigned ArgWords = 0;
 
-  const unsigned PtrSize = DL.getPointerSize();
+  const unsigned PtrSize = DL.getPointerSize(0);
 
   for (const Argument &A : F->args()) {
     // 'Dereference' type in case of byval or inalloca parameter attribute.

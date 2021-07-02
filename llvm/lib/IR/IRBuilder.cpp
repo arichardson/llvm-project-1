@@ -40,10 +40,9 @@ using namespace llvm;
 /// has array of i8 type filled in with the nul terminated string value
 /// specified.  If Name is specified, it is the name of the global variable
 /// created.
-GlobalVariable *IRBuilderBase::CreateGlobalString(StringRef Str,
-                                                  const Twine &Name,
-                                                  unsigned AddressSpace,
-                                                  Module *M) {
+GlobalVariable *
+IRBuilderBase::CreateGlobalString(StringRef Str, const Twine &Name,
+                                  Optional<unsigned> AddressSpace, Module *M) {
   Constant *StrConstant = ConstantDataArray::getString(Context, Str);
   if (!M)
     M = BB->getParent()->getParent();

@@ -27,10 +27,12 @@
 
 using namespace llvm;
 
+// Note: InlineAsm is currently always in address space zero
+// TODO: should we require it to be DL.getProgramAddressSpace()?
 InlineAsm::InlineAsm(FunctionType *FTy, const std::string &asmString,
                      const std::string &constraints, bool hasSideEffects,
                      bool isAlignStack, AsmDialect asmDialect, bool canThrow)
-    : Value(PointerType::getUnqual(FTy), Value::InlineAsmVal),
+    : Value(PointerType::get(FTy, 0), Value::InlineAsmVal),
       AsmString(asmString), Constraints(constraints), FTy(FTy),
       HasSideEffects(hasSideEffects), IsAlignStack(isAlignStack),
       Dialect(asmDialect), CanThrow(canThrow) {
@@ -46,7 +48,9 @@ InlineAsm *InlineAsm::get(FunctionType *FTy, StringRef AsmString,
   InlineAsmKeyType Key(AsmString, Constraints, FTy, hasSideEffects,
                        isAlignStack, asmDialect, canThrow);
   LLVMContextImpl *pImpl = FTy->getContext().pImpl;
-  return pImpl->InlineAsms.getOrCreate(PointerType::getUnqual(FTy), Key);
+  // Note: InlineAsm is currently always in address space zero
+  // TODO: should we require it to be DL.getProgramAddressSpace()?
+  return pImpl->InlineAsms.getOrCreate(PointerType::get(FTy, 0), Key);
 }
 
 void InlineAsm::destroyConstant() {

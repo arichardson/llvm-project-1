@@ -670,12 +670,14 @@ static Instruction *createMalloc(Instruction *InsertBefore,
   // Create the call to Malloc.
   BasicBlock *BB = InsertBefore ? InsertBefore->getParent() : InsertAtEnd;
   Module *M = BB->getParent()->getParent();
-  Type *BPTy = Type::getInt8PtrTy(BB->getContext());
+  Type *BPTy = Type::getInt8PtrTy(
+      BB->getContext(), M->getDataLayout().getDefaultGlobalsAddressSpace());
   FunctionCallee MallocFunc = MallocF;
   if (!MallocFunc)
     // prototype malloc as "void *malloc(size_t)"
     MallocFunc = M->getOrInsertFunction("malloc", BPTy, IntPtrTy);
-  PointerType *AllocPtrType = PointerType::getUnqual(AllocTy);
+  PointerType *AllocPtrType = AllocTy->getPointerTo(
+      MallocFunc.getFunctionType()->getReturnType()->getPointerAddressSpace());
   CallInst *MCall = nullptr;
   Instruction *Result = nullptr;
   if (InsertBefore) {
@@ -766,7 +768,8 @@ static Instruction *createFree(Value *Source,
   Module *M = BB->getParent()->getParent();
 
   Type *VoidTy = Type::getVoidTy(M->getContext());
-  Type *IntPtrTy = Type::getInt8PtrTy(M->getContext());
+  Type *IntPtrTy = Type::getInt8PtrTy(
+      M->getContext(), Source->getType()->getPointerAddressSpace());
   // prototype free as "void free(void*)"
   FunctionCallee FreeFunc = M->getOrInsertFunction("free", VoidTy, IntPtrTy);
   CallInst *Result = nullptr;

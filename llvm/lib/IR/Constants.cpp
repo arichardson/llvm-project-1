@@ -2346,9 +2346,8 @@ Constant *ConstantExpr::getSizeOf(Type* Ty) {
   // Note that a non-inbounds gep is used, as null isn't within any object.
   Constant *GEPIdx = ConstantInt::get(Type::getInt32Ty(Ty->getContext()), 1);
   Constant *GEP = getGetElementPtr(
-      Ty, Constant::getNullValue(PointerType::getUnqual(Ty)), GEPIdx);
-  return getPtrToInt(GEP,
-                     Type::getInt64Ty(Ty->getContext()));
+      Ty, Constant::getNullValue(PointerType::get(Ty, 0)), GEPIdx);
+  return getPtrToInt(GEP, Type::getInt64Ty(Ty->getContext()));
 }
 
 Constant *ConstantExpr::getAlignOf(Type* Ty) {
@@ -2377,9 +2376,8 @@ Constant *ConstantExpr::getOffsetOf(Type* Ty, Constant *FieldNo) {
     FieldNo
   };
   Constant *GEP = getGetElementPtr(
-      Ty, Constant::getNullValue(PointerType::getUnqual(Ty)), GEPIdx);
-  return getPtrToInt(GEP,
-                     Type::getInt64Ty(Ty->getContext()));
+      Ty, Constant::getNullValue(PointerType::get(Ty, 0)), GEPIdx);
+  return getPtrToInt(GEP, Type::getInt64Ty(Ty->getContext()));
 }
 
 Constant *ConstantExpr::getCompare(unsigned short Predicate, Constant *C1,

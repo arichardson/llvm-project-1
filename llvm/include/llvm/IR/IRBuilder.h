@@ -446,7 +446,7 @@ public:
   /// If no module is given via \p M, it is take from the insertion point basic
   /// block.
   GlobalVariable *CreateGlobalString(StringRef Str, const Twine &Name = "",
-                                     unsigned AddressSpace = 0,
+                                     Optional<unsigned> AddressSpace = None,
                                      Module *M = nullptr);
 
   /// Get a constant value representing either true or false.
@@ -561,10 +561,18 @@ public:
   PointerType *getInt8PtrTy(unsigned AddrSpace = 0) {
     return Type::getInt8PtrTy(Context, AddrSpace);
   }
+  LLVM_ATTRIBUTE_DEPRECATED(PointerType *getInt8PtrTy(),
+                            "use the overload with an explicit address space") {
+    return getInt8PtrTy(0);
+  }
 
   /// Fetch the type representing a pointer to an integer value.
-  IntegerType *getIntPtrTy(const DataLayout &DL, unsigned AddrSpace = 0) {
+  IntegerType *getIntPtrTy(const DataLayout &DL, unsigned AddrSpace) {
     return DL.getIntPtrType(Context, AddrSpace);
+  }
+  LLVM_ATTRIBUTE_DEPRECATED(IntegerType *getIntPtrTy(const DataLayout &DL),
+                            "use the overload with an explicit address space") {
+    return getIntPtrTy(DL, 0);
   }
 
   //===--------------------------------------------------------------------===//
@@ -1969,7 +1977,7 @@ public:
   /// If no module is given via \p M, it is take from the insertion point basic
   /// block.
   Constant *CreateGlobalStringPtr(StringRef Str, const Twine &Name = "",
-                                  unsigned AddressSpace = 0,
+                                  Optional<unsigned> AddressSpace = None,
                                   Module *M = nullptr) {
     GlobalVariable *GV = CreateGlobalString(Str, Name, AddressSpace, M);
     Constant *Zero = ConstantInt::get(Type::getInt32Ty(Context), 0);
