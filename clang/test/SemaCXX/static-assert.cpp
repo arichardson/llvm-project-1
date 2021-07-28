@@ -216,3 +216,10 @@ static_assert(alignof(IntAndPointer) == sizeof(IntAndPointer), "message");
 // expected-error@-1{{static_assert failed due to requirement 'alignof(IntAndPointer) == sizeof(IntAndPointer)' "message"}}
 // expected-note@-2{{with 'alignof(IntAndPointer)' equal to 8}}
 // expected-note@-3{{with 'sizeof(IntAndPointer)' equal to 16}}
+#define offsetof(s, f) __builtin_offsetof(s, f)
+static_assert(__builtin_offsetof(IntAndPointer, p) == -1, "message");
+// expected-error@-1{{static_assert failed due to requirement '__builtin_offsetof(IntAndPointer, p) == -1' "message"}}
+// expected-note@-2{{with '__builtin_offsetof(IntAndPointer, p)' equal to 8}}
+static_assert(offsetof(IntAndPointer, i) == -1, "message");
+// expected-error@-1{{static_assert failed due to requirement '__builtin_offsetof(IntAndPointer, i) == -1' "message"}}
+// expected-note@-2{{with '__builtin_offsetof(IntAndPointer, i)' equal to 0}}

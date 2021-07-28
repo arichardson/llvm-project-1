@@ -3579,10 +3579,10 @@ public:
   explicit FailedBooleanConditionPrinterHelper(
       const PrintingPolicy &P, Sema &S,
       SmallVectorImpl<PartialDiagnosticAt> &Notes)
-      : Policy(P), S(S), Notes(Notes) {}
+      : Policy(P), SemaRef(S), Notes(Notes) {}
 
-  bool handledStmt(Stmt *E, raw_ostream &OS) override {
-    const auto *DR = dyn_cast<DeclRefExpr>(E);
+  bool handledStmt(Stmt *S, raw_ostream &OS) override {
+    const auto *DR = dyn_cast<DeclRefExpr>(S);
     if (DR && DR->getQualifier()) {
       // If this is a qualified name, expand the template arguments in nested
       // qualifiers.
@@ -3597,18 +3597,20 @@ public:
             IV->getSpecializedTemplate()->getTemplateParameters());
       }
       return true;
-    } else if (auto *UE = dyn_cast<UnaryExprOrTypeTraitExpr>(E)) {
+    } else if (isa<UnaryExprOrTypeTraitExpr>(S) || isa<OffsetOfExpr>(S)) {
+      Expr *E = cast<Expr>(S);
       Expr::EvalResult Result;
-      if (UE->EvaluateAsConstantExpr(Result, S.Context) && Result.Val.isInt()) {
+      if (E->EvaluateAsConstantExpr(Result, SemaRef.Context) &&
+          Result.Val.isInt()) {
         std::string ExprStr;
         llvm::raw_string_ostream ExprStream(ExprStr);
-        UE->printPretty(ExprStream, nullptr, Policy);
+        E->printPretty(ExprStream, nullptr, Policy);
         ExprStream.flush();
         Notes.push_back(PartialDiagnosticAt(
-            UE->getExprLoc(),
-            S.PDiag(diag::note_static_assert_requirement_context)
+            E->getExprLoc(),
+            SemaRef.PDiag(diag::note_static_assert_requirement_context)
                 << ExprStr << toString(Result.Val.getInt(), 10)
-                << UE->getSourceRange()));
+                << E->getSourceRange()));
       }
     }
     return false;
@@ -3616,7 +3618,7 @@ public:
 
 private:
   const PrintingPolicy Policy;
-  Sema &S;
+  Sema &SemaRef;
   SmallVectorImpl<PartialDiagnosticAt> &Notes;
 };
 
