@@ -55,7 +55,9 @@ struct A {
 typedef UNION(unsigned, struct A) U1; // ext-warning 3 {{'_Static_assert' is a C11 extension}}
 UNION(char[2], short) u2 = { .one = { 'a', 'b' } }; // ext-warning 3 {{'_Static_assert' is a C11 extension}} cxx-warning {{designated initializers are a C++20 extension}}
 typedef UNION(char, short) U3; // expected-error {{static_assert failed due to requirement 'sizeof(char) == sizeof(short)' "type size mismatch"}} \
-                               // ext-warning 3 {{'_Static_assert' is a C11 extension}}
+                               // ext-warning 3 {{'_Static_assert' is a C11 extension}} \
+                               // expected-note {{with 'sizeof(char)' equal to 1}} \
+                               // expected-note {{with 'sizeof(short)' equal to 2}}
 typedef UNION(float, 0.5f) U4; // expected-error {{expected a type}} \
                                // ext-warning 3 {{'_Static_assert' is a C11 extension}}
 

@@ -16396,8 +16396,9 @@ Decl *Sema::BuildStaticAssertDeclaration(SourceLocation StaticAssertLoc,
 
       Expr *InnerCond = nullptr;
       std::string InnerCondDescription;
+      SmallVector<PartialDiagnosticAt, 2> Notes;
       std::tie(InnerCond, InnerCondDescription) =
-        findFailedBooleanCondition(Converted.get());
+          findFailedBooleanCondition(Converted.get(), Notes);
       if (InnerCond && isa<ConceptSpecializationExpr>(InnerCond)) {
         // Drill down into concept specialization expressions to see why they
         // weren't satisfied.
@@ -16415,6 +16416,8 @@ Decl *Sema::BuildStaticAssertDeclaration(SourceLocation StaticAssertLoc,
         Diag(StaticAssertLoc, diag::err_static_assert_failed)
           << !AssertMessage << Msg.str() << AssertExpr->getSourceRange();
       }
+      for (const PartialDiagnosticAt &Note : Notes)
+        Diag(Note.first, Note.second);
       Failed = true;
     }
   } else {

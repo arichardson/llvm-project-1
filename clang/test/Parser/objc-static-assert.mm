@@ -26,7 +26,7 @@
 
   static_assert(a, ""); // expected-error {{static_assert expression is not an integral constant expression}}
   static_assert(sizeof(a) == 4, "");
-  static_assert(sizeof(a) == 3, ""); // expected-error {{static_assert failed}}
+  static_assert(sizeof(a) == 3, ""); // expected-error {{static_assert failed}} expected-note{{with 'sizeof (a)' equal to 4}}
 }
 
 static_assert(1, "");
@@ -40,7 +40,7 @@ _Static_assert(1, "");
   static_assert(1, "");
   _Static_assert(1, "");
   static_assert(sizeof(b) == 4, "");
-  static_assert(sizeof(b) == 3, ""); // expected-error {{static_assert failed}}
+  static_assert(sizeof(b) == 3, ""); // expected-error {{static_assert failed}} expected-note{{with 'sizeof (b)' equal to 4}}
 }
 
 static_assert(1, "");
@@ -56,7 +56,7 @@ static_assert(1, "");
 @interface B () {
   int b;
   static_assert(sizeof(b) == 4, "");
-  static_assert(sizeof(b) == 3, ""); // expected-error {{static_assert failed}}
+  static_assert(sizeof(b) == 3, ""); // expected-error {{static_assert failed}} expected-note{{with 'sizeof (b)' equal to 4}}
 }
 @end
 

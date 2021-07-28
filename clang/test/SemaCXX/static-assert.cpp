@@ -21,8 +21,10 @@ template<int N> struct T {
 T<1> t1; // expected-note {{in instantiation of template class 'T<1>' requested here}}
 T<2> t2;
 
-template<typename T> struct S {
-    static_assert(sizeof(T) > sizeof(char), "Type not big enough!"); // expected-error {{static_assert failed due to requirement 'sizeof(char) > sizeof(char)' "Type not big enough!"}}
+template <typename T> struct S {
+  static_assert(sizeof(T) > sizeof(char), "Type not big enough!"); // expected-error {{static_assert failed due to requirement 'sizeof(char) > sizeof(char)' "Type not big enough!"}}
+                                                                   // expected-note@-1{{with 'sizeof(char)' equal to 1}}
+                                                                   // expected-note@-2{{with 'sizeof(char)' equal to 1}}
 };
 
 S<char> s1; // expected-note {{in instantiation of template class 'S<char>' requested here}}
@@ -199,3 +201,18 @@ struct NotBool {
 constexpr NotBool constexprNotBool;
 static_assert(notBool, "message");          // expected-error {{value of type 'struct NotBool' is not contextually convertible to 'bool'}}
 static_assert(constexprNotBool, "message"); // expected-error {{value of type 'const NotBool' is not contextually convertible to 'bool'}}
+
+struct IntAndPointer {
+  int i;
+  void *p;
+};
+static_assert(sizeof(IntAndPointer) == 4, "message");
+// expected-error@-1{{static_assert failed due to requirement 'sizeof(IntAndPointer) == 4' "message"}}
+// expected-note@-2{{with 'sizeof(IntAndPointer)' equal to 16}}
+static_assert(alignof(IntAndPointer) == 4, "message");
+// expected-error@-1{{static_assert failed due to requirement 'alignof(IntAndPointer) == 4' "message"}}
+// expected-note@-2{{with 'alignof(IntAndPointer)' equal to 8}}
+static_assert(alignof(IntAndPointer) == sizeof(IntAndPointer), "message");
+// expected-error@-1{{static_assert failed due to requirement 'alignof(IntAndPointer) == sizeof(IntAndPointer)' "message"}}
+// expected-note@-2{{with 'alignof(IntAndPointer)' equal to 8}}
+// expected-note@-3{{with 'sizeof(IntAndPointer)' equal to 16}}

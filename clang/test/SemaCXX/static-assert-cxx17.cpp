@@ -89,6 +89,7 @@ void foo6() {
   // expected-error@-1{{static_assert failed due to requirement 'int(0)'}}
   static_assert(sizeof(X<typename T::T>) == 0);
   // expected-error@-1{{static_assert failed due to requirement 'sizeof(X<int>) == 0'}}
+  // expected-note@-2{{with 'sizeof(X<int>)' equal to 8}}
   static_assert((const X<typename T::T> *)nullptr);
   // expected-error@-1{{static_assert failed due to requirement '(const X<int> *)nullptr'}}
   static_assert(static_cast<const X<typename T::T> *>(nullptr));
@@ -97,6 +98,7 @@ void foo6() {
   // expected-error@-1{{static_assert failed due to requirement '(const X<int> [0]){} == nullptr'}}
   static_assert(sizeof(X<decltype(X<typename T::T>().X<typename T::T>::~X())>) == 0);
   // expected-error@-1{{static_assert failed due to requirement 'sizeof(X<void>) == 0'}}
+  // expected-note@-2{{with 'sizeof(X<void>)' equal to 8}}
   static_assert(constexpr_return_false<typename T::T, typename T::U>());
   // expected-error@-1{{static_assert failed due to requirement 'constexpr_return_false<int, float>()'}}
 }

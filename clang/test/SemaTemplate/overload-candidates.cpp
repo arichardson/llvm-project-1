@@ -62,6 +62,7 @@ void test_if_int() {
 
 template<typename T> struct NonTemplateFunction {
   typename boost::enable_if<sizeof(T) == 4, int>::type f(); // expected-error{{failed requirement 'sizeof(char) == 4'; 'enable_if' cannot be used to disable this declaration}}
+  // expected-note@-1{{with 'sizeof(char)' equal to 1}}
 };
 NonTemplateFunction<char> NTFC; // expected-note{{here}}
 

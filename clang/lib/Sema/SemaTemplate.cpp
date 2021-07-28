@@ -3576,8 +3576,10 @@ namespace {
 // for actual types.
 class FailedBooleanConditionPrinterHelper : public PrinterHelper {
 public:
-  explicit FailedBooleanConditionPrinterHelper(const PrintingPolicy &P)
-      : Policy(P) {}
+  explicit FailedBooleanConditionPrinterHelper(
+      const PrintingPolicy &P, Sema &S,
+      SmallVectorImpl<PartialDiagnosticAt> &Notes)
+      : Policy(P), S(S), Notes(Notes) {}
 
   bool handledStmt(Stmt *E, raw_ostream &OS) override {
     const auto *DR = dyn_cast<DeclRefExpr>(E);
@@ -3595,18 +3597,34 @@ public:
             IV->getSpecializedTemplate()->getTemplateParameters());
       }
       return true;
+    } else if (auto *UE = dyn_cast<UnaryExprOrTypeTraitExpr>(E)) {
+      Expr::EvalResult Result;
+      if (UE->EvaluateAsConstantExpr(Result, S.Context) && Result.Val.isInt()) {
+        std::string ExprStr;
+        llvm::raw_string_ostream ExprStream(ExprStr);
+        UE->printPretty(ExprStream, nullptr, Policy);
+        ExprStream.flush();
+        Notes.push_back(PartialDiagnosticAt(
+            UE->getExprLoc(),
+            S.PDiag(diag::note_static_assert_requirement_context)
+                << ExprStr << toString(Result.Val.getInt(), 10)
+                << UE->getSourceRange()));
+      }
     }
     return false;
   }
 
 private:
   const PrintingPolicy Policy;
+  Sema &S;
+  SmallVectorImpl<PartialDiagnosticAt> &Notes;
 };
 
 } // end anonymous namespace
 
 std::pair<Expr *, std::string>
-Sema::findFailedBooleanCondition(Expr *Cond) {
+Sema::findFailedBooleanCondition(Expr *Cond,
+                                 SmallVectorImpl<PartialDiagnosticAt> &Notes) {
   Cond = lookThroughRangesV3Condition(PP, Cond);
 
   // Separate out all of the terms in a conjunction.
@@ -3643,7 +3661,7 @@ Sema::findFailedBooleanCondition(Expr *Cond) {
     llvm::raw_string_ostream Out(Description);
     PrintingPolicy Policy = getPrintingPolicy();
     Policy.PrintCanonicalTypes = true;
-    FailedBooleanConditionPrinterHelper Helper(Policy);
+    FailedBooleanConditionPrinterHelper Helper(Policy, *this, Notes);
     FailedCond->printPretty(Out, &Helper, Policy, 0, "\n", nullptr);
   }
   return { FailedCond, Description };
@@ -3731,8 +3749,10 @@ QualType Sema::CheckTemplateIdType(TemplateName Name,
                 == TemplateArgument::Expression) {
             Expr *FailedCond;
             std::string FailedDescription;
+            SmallVector<PartialDiagnosticAt, 2> Notes;
             std::tie(FailedCond, FailedDescription) =
-              findFailedBooleanCondition(TemplateArgs[0].getSourceExpression());
+                findFailedBooleanCondition(
+                    TemplateArgs[0].getSourceExpression(), Notes);
 
             // Remove the old SFINAE diagnostic.
             PartialDiagnosticAt OldDiag =
@@ -3746,6 +3766,8 @@ QualType Sema::CheckTemplateIdType(TemplateName Name,
               PDiag(diag::err_typename_nested_not_found_requirement)
                 << FailedDescription
                 << FailedCond->getSourceRange());
+            for (const PartialDiagnosticAt &Note : Notes)
+              (*DeductionInfo)->addSFINAEDiagnostic(Note.first, Note.second);
           }
         }
       }
@@ -10614,13 +10636,16 @@ Sema::CheckTypenameType(ElaboratedTypeKeyword Keyword,
       if (Cond) {
         Expr *FailedCond;
         std::string FailedDescription;
+        SmallVector<PartialDiagnosticAt, 2> Notes;
         std::tie(FailedCond, FailedDescription) =
-          findFailedBooleanCondition(Cond);
+            findFailedBooleanCondition(Cond, Notes);
 
         Diag(FailedCond->getExprLoc(),
              diag::err_typename_nested_not_found_requirement)
           << FailedDescription
           << FailedCond->getSourceRange();
+        for (const PartialDiagnosticAt &Note : Notes)
+          Diag(Note.first, Note.second);
         return QualType();
       }
 

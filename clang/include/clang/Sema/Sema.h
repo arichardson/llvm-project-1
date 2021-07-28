@@ -3759,7 +3759,9 @@ public:
 
   /// Find the failed Boolean condition within a given Boolean
   /// constant expression, and describe it with a string.
-  std::pair<Expr *, std::string> findFailedBooleanCondition(Expr *Cond);
+  std::pair<Expr *, std::string>
+  findFailedBooleanCondition(Expr *Cond,
+                             SmallVectorImpl<PartialDiagnosticAt> &Notes);
 
   /// Emit diagnostics for the diagnose_if attributes on Function, ignoring any
   /// non-ArgDependent DiagnoseIfAttrs.
