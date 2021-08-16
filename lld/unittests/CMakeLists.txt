@@ -12,5 +12,8 @@ function(add_lld_unittest test_dirname)
   target_link_libraries(${test_dirname} ${LLVM_COMMON_LIBS})
 endfunction()
 
-add_subdirectory(DriverTests)
-add_subdirectory(MachOTests)
+# Currently, all unit tests depend on the old Mach-O linker
+if (LLD_ENABLE_MACHO_LINKER)
+  add_subdirectory(DriverTests)
+  add_subdirectory(MachOTests)
+endif()

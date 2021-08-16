@@ -99,6 +99,15 @@ if config.have_libxml2:
 if config.have_dia_sdk:
     config.available_features.add("diasdk")
 
+if config.have_lld_coff_linker:
+    config.available_features.add('lld-coff')
+if config.have_lld_elf_linker:
+    config.available_features.add('lld-elf')
+if config.have_lld_macho_linker:
+    config.available_features.add('lld-macho')
+if config.have_lld_wasm_linker:
+    config.available_features.add('lld-wasm')
+
 if config.sizeof_void_p == 8:
     config.available_features.add("llvm-64-bits")
 

@@ -25,6 +25,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "lld/Common/config.h"
+
 #include "lld/Common/Driver.h"
 #include "lld/Common/ErrorHandler.h"
 #include "lld/Common/Memory.h"
@@ -58,6 +60,11 @@ enum Flavor {
 [[noreturn]] static void die(const Twine &s) {
   llvm::errs() << s << "\n";
   exit(1);
+}
+
+[[noreturn]] LLVM_ATTRIBUTE_UNUSED static void
+missingLinkerSupport(StringRef format) {
+  die(format + " support in lld was disabled. Please use a different linker");
 }
 
 static Flavor getFlavor(StringRef s) {
@@ -144,17 +151,42 @@ static int lldMain(int argc, const char **argv, llvm::raw_ostream &stdoutOS,
   std::vector<const char *> args(argv, argv + argc);
   switch (parseFlavor(args)) {
   case Gnu:
-    if (isPETarget(args))
+    if (isPETarget(args)) {
+#if !LLD_ENABLE_COFF_LINKER
+      missingLinkerSupport("COFF");
+#else
       return !mingw::link(args, exitEarly, stdoutOS, stderrOS);
+#endif
+    }
+#if !LLD_ENABLE_ELF_LINKER
+    missingLinkerSupport("ELF");
+#else
     return !elf::link(args, exitEarly, stdoutOS, stderrOS);
+#endif
   case WinLink:
+#if !LLD_ENABLE_COFF_LINKER
+    missingLinkerSupport("COFF");
+#else
     return !coff::link(args, exitEarly, stdoutOS, stderrOS);
+#endif
   case Darwin:
+#if !LLD_ENABLE_MACHO_LINKER
+    missingLinkerSupport("Mach-O");
+#else
     return !macho::link(args, exitEarly, stdoutOS, stderrOS);
+#endif
   case DarwinOld:
+#if !LLD_ENABLE_MACHO_LINKER
+    missingLinkerSupport("Mach-O");
+#else
     return !mach_o::link(args, exitEarly, stdoutOS, stderrOS);
+#endif
   case Wasm:
+#if !LLD_ENABLE_WASM_LINKER
+    missingLinkerSupport("WASM");
+#else
     return !lld::wasm::link(args, exitEarly, stdoutOS, stderrOS);
+#endif
   default:
     die("lld is a generic driver.\n"
         "Invoke ld.lld (Unix), ld64.lld (macOS), lld-link (Windows), wasm-ld"

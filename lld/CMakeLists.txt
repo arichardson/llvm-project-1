@@ -176,6 +176,13 @@ if (LLD_DEFAULT_LD_LLD_IS_MINGW)
   add_definitions("-DLLD_DEFAULT_LD_LLD_IS_MINGW=1")
 endif()
 
+option(LLD_ENABLE_ELF_LINKER "Build the ELF linker" ON)
+option(LLD_ENABLE_COFF_LINKER "Build the COFF linker" ON)
+option(LLD_ENABLE_MACHO_LINKER "Build the Mach-O linker" ON)
+option(LLD_ENABLE_WASM_LINKER "Build the WASM linker" ON)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/lld/Common/config.h.cmake
+               ${CMAKE_CURRENT_BINARY_DIR}/include/lld/Common/config.h)
+
 if (MSVC)
   add_definitions(-wd4530) # Suppress 'warning C4530: C++ exception handler used, but unwind semantics are not enabled.'
   add_definitions(-wd4062) # Suppress 'warning C4062: enumerator X in switch of enum Y is not handled' from system header.
@@ -195,7 +202,9 @@ if (NOT LLVM_INSTALL_TOOLCHAIN_ONLY)
 endif()
 
 add_subdirectory(Common)
-add_subdirectory(lib)
+if (LLD_ENABLE_MACHO_LINKER)
+  add_subdirectory(lib)
+endif()
 add_subdirectory(tools/lld)
 
 if (LLVM_INCLUDE_TESTS)
@@ -204,10 +213,18 @@ if (LLVM_INCLUDE_TESTS)
 endif()
 
 add_subdirectory(docs)
-add_subdirectory(COFF)
-add_subdirectory(ELF)
-add_subdirectory(MachO)
-add_subdirectory(MinGW)
-add_subdirectory(wasm)
+if (LLD_ENABLE_COFF_LINKER)
+  add_subdirectory(COFF)
+  add_subdirectory(MinGW)
+endif()
+if (LLD_ENABLE_ELF_LINKER)
+  add_subdirectory(ELF)
+endif()
+if (LLD_ENABLE_MACHO_LINKER)
+  add_subdirectory(MachO)
+endif()
+if (LLD_ENABLE_WASM_LINKER)
+  add_subdirectory(wasm)
+endif()
 
 add_subdirectory(cmake/modules)
