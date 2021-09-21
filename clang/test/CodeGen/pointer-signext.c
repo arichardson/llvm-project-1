@@ -1,3 +1,5 @@
+// RUN: %clang_cc1 -triple x86_64-pc-win32 -emit-llvm -O0 -o - %s
+// RUN: %clang_cc1 -triple x86_64-pc-win32 -emit-llvm -O2 -o - %s -ast-dump
 // RUN: %clang_cc1 -triple x86_64-pc-win32 -emit-llvm -O2 -o - %s | FileCheck %s
 
 // Under Windows 64, int and long are 32-bits.  Make sure pointer math doesn't

@@ -896,6 +896,7 @@ Constant *SymbolicallyEvaluateGEP(const GEPOperator *GEP,
                                   const TargetLibraryInfo *TLI,
                                   bool ForLoadOperand) {
   const GEPOperator *InnermostGEP = GEP;
+  const GEPOperator *OutermostGEP = GEP;
   bool InBounds = GEP->isInBounds();
 
   Type *SrcElemTy = GEP->getSourceElementType();
@@ -960,9 +961,17 @@ Constant *SymbolicallyEvaluateGEP(const GEPOperator *GEP,
 
     Ptr = cast<Constant>(GEP->getOperand(0));
     SrcElemTy = GEP->getSourceElementType();
-    Offset += APInt(BitWidth, DL.getIndexedOffsetInType(SrcElemTy, NestedOps));
+    APInt CurOffset(BitWidth, DL.getIndexedOffsetInType(SrcElemTy, NestedOps));
+    // Any non-zero inbounds GEP on null is poison and therefore a GEP using
+    // that value as the source is also poison.
+    if (Ptr->isNullValue() && GEP->isInBounds() && !Offset.isZero())
+      return PoisonValue::get(ResTy);
+    Offset += CurOffset;
     Ptr = StripPtrCastKeepAS(Ptr, ForLoadOperand);
   }
+  // Any non-zero inbounds GEP on null is poison.
+  if (Ptr->isNullValue() && OutermostGEP->isInBounds() && !Offset.isZero())
+    return PoisonValue::get(ResTy);
 
   // If the base value for this address is a literal integer value, fold the
   // getelementptr to the resulting integer value casted to the pointer type.

@@ -2251,6 +2251,9 @@ Constant *llvm::ConstantFoldGetElementPtr(Type *PointeeTy, Constant *C,
       }
 
       return Constant::getNullValue(GEPTy);
+    } else if (InBounds) {
+      // Any non-zero inbounds GEP on NULL is invalid, return poison.
+      return PoisonValue::get(GEPTy);
     }
   }
 

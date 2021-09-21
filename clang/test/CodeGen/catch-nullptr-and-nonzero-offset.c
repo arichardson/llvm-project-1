@@ -211,15 +211,14 @@ char *nullptr_zero() {
 char *nullptr_one_BAD() {
   // CHECK:                           define{{.*}} i8* @nullptr_one_BAD()
   // CHECK-NEXT:                      [[ENTRY:.*]]:
-  // CHECK-SANITIZE-C-NEXT:             br i1 false, label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
-  // CHECK-SANITIZE-CPP-NEXT:           br i1 icmp eq (i64 ptrtoint (i8* getelementptr inbounds (i8, i8* null, i64 1) to i64), i64 0), label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
+  // CHECK-SANITIZE-NEXT:             br i1 poison, label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
   // CHECK-SANITIZE:                  [[HANDLER_POINTER_OVERFLOW]]:
-  // CHECK-SANITIZE-NORECOVER-NEXT:     call void @__ubsan_handle_pointer_overflow_abort(i8* bitcast ({ {{{.*}}} }* @[[LINE_700]] to i8*), i64 0, i64 ptrtoint (i8* getelementptr inbounds (i8, i8* null, i64 1) to i64))
-  // CHECK-SANITIZE-RECOVER-NEXT:       call void @__ubsan_handle_pointer_overflow(i8* bitcast ({ {{{.*}}} }* @[[LINE_700]] to i8*), i64 0, i64 ptrtoint (i8* getelementptr inbounds (i8, i8* null, i64 1) to i64))
+  // CHECK-SANITIZE-NORECOVER-NEXT:     call void @__ubsan_handle_pointer_overflow_abort(i8* bitcast ({ {{{.*}}} }* @[[LINE_700]] to i8*), i64 0, i64 poison)
+  // CHECK-SANITIZE-RECOVER-NEXT:       call void @__ubsan_handle_pointer_overflow(i8* bitcast ({ {{{.*}}} }* @[[LINE_700]] to i8*), i64 0, i64 poison)
   // CHECK-SANITIZE-TRAP-NEXT:          call void @llvm.ubsantrap(i8 19){{.*}}, !nosanitize
   // CHECK-SANITIZE-UNREACHABLE-NEXT:   unreachable, !nosanitize
   // CHECK-SANITIZE:                  [[CONT]]:
-  // CHECK-NEXT:                        ret i8* getelementptr inbounds (i8, i8* null, i64 1)
+  // CHECK-NEXT:                        ret i8* poison
   static char *const base = (char *)0;
   static const unsigned long offset = 1;
 #line 700
@@ -229,15 +228,14 @@ char *nullptr_one_BAD() {
 char *nullptr_allones_BAD() {
   // CHECK:                           define{{.*}} i8* @nullptr_allones_BAD()
   // CHECK-NEXT:                      [[ENTRY:.*]]:
-  // CHECK-SANITIZE-C-NEXT:             br i1 false, label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
-  // CHECK-SANITIZE-CPP-NEXT:           br i1 icmp eq (i64 ptrtoint (i8* getelementptr inbounds (i8, i8* null, i64 -1) to i64), i64 0), label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
+  // CHECK-SANITIZE-NEXT:             br i1 poison, label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
   // CHECK-SANITIZE:                  [[HANDLER_POINTER_OVERFLOW]]:
-  // CHECK-SANITIZE-NORECOVER-NEXT:     call void @__ubsan_handle_pointer_overflow_abort(i8* bitcast ({ {{{.*}}} }* @[[LINE_800]] to i8*), i64 0, i64 ptrtoint (i8* getelementptr inbounds (i8, i8* null, i64 -1) to i64))
-  // CHECK-SANITIZE-RECOVER-NEXT:       call void @__ubsan_handle_pointer_overflow(i8* bitcast ({ {{{.*}}} }* @[[LINE_800]] to i8*), i64 0, i64 ptrtoint (i8* getelementptr inbounds (i8, i8* null, i64 -1) to i64))
+  // CHECK-SANITIZE-NORECOVER-NEXT:     call void @__ubsan_handle_pointer_overflow_abort(i8* bitcast ({ {{{.*}}} }* @[[LINE_800]] to i8*), i64 0, i64 poison)
+  // CHECK-SANITIZE-RECOVER-NEXT:       call void @__ubsan_handle_pointer_overflow(i8* bitcast ({ {{{.*}}} }* @[[LINE_800]] to i8*), i64 0, i64 poison)
   // CHECK-SANITIZE-TRAP-NEXT:          call void @llvm.ubsantrap(i8 19){{.*}}, !nosanitize
   // CHECK-SANITIZE-UNREACHABLE-NEXT:   unreachable, !nosanitize
   // CHECK-SANITIZE:                  [[CONT]]:
-  // CHECK-NEXT:                        ret i8* getelementptr inbounds (i8, i8* null, i64 -1)
+  // CHECK-NEXT:                        ret i8* poison
   static char *const base = (char *)0;
   static const unsigned long offset = -1;
 #line 800
