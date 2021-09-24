@@ -966,23 +966,19 @@ Constant *SymbolicallyEvaluateGEP(const GEPOperator *GEP,
 
   // If the base value for this address is a literal integer value, fold the
   // getelementptr to the resulting integer value casted to the pointer type.
-  auto PtrBits = DL.getIntPtrType(ResTy)->getIntegerBitWidth();
-  APInt BasePtr(PtrBits, 0);
   if (auto *CE = dyn_cast<ConstantExpr>(Ptr)) {
     if (CE->getOpcode() == Instruction::IntToPtr) {
-      if (auto *Base = dyn_cast<ConstantInt>(CE->getOperand(0)))
-        BasePtr = Base->getValue().zextOrTrunc(PtrBits);
+      if (auto *Base = dyn_cast<ConstantInt>(CE->getOperand(0))) {
+        auto PtrBits = DL.getIntPtrType(ResTy)->getIntegerBitWidth();
+        APInt BasePtr = Base->getValue().zextOrTrunc(PtrBits);
+        Constant *C = ConstantInt::get(Ptr->getContext(),
+                                       BasePtr + Offset.sextOrTrunc(PtrBits));
+        return ConstantExpr::getIntToPtr(C, ResTy);
+      }
     }
   }
 
   auto *PTy = cast<PointerType>(Ptr->getType());
-  if ((Ptr->isNullValue() || BasePtr != 0) &&
-      !DL.isNonIntegralPointerType(PTy)) {
-    Constant *C = ConstantInt::get(Ptr->getContext(),
-                                   BasePtr + Offset.sextOrTrunc(PtrBits));
-    return ConstantExpr::getIntToPtr(C, ResTy);
-  }
-
   // Otherwise form a regular getelementptr. Recompute the indices so that
   // we eliminate over-indexing of the notional static type array bounds.
   // This makes it easy to determine if the getelementptr is "inbounds".
