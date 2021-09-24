@@ -1358,12 +1358,25 @@ Constant *llvm::ConstantFoldCastOperand(unsigned Opcode, Constant *C,
         // If we have GEP, we can perform the following folds:
         // (ptrtoint (gep null, x)) -> x
         // (ptrtoint (gep (gep null, x), y) -> x + y, etc.
+        // (ptrtoint (gep (inttoptr x), y)) -> x + y
         unsigned BitWidth = DL.getIndexTypeSizeInBits(GEP->getType());
         APInt BaseOffset(BitWidth, 0);
         auto *Base = cast<Constant>(GEP->stripAndAccumulateConstantOffsets(
             DL, BaseOffset, /*AllowNonInbounds=*/true));
         if (Base->isNullValue()) {
           FoldedValue = ConstantInt::get(CE->getContext(), BaseOffset);
+        } else if (auto BaseCE = dyn_cast<ConstantExpr>(Base)) {
+          if (BaseCE->getOpcode() == Instruction::IntToPtr) {
+            Type *IntPtrTy = DL.getIntPtrType(BaseCE->getType());
+            FoldedValue = ConstantExpr::getAdd(
+                // zext/trunc the inttoptr operand to pointer size.
+                ConstantExpr::getIntegerCast(BaseCE->getOperand(0), IntPtrTy,
+                                             false),
+                // sext/trunc the gep index to pointer size.
+                ConstantExpr::getIntegerCast(
+                    ConstantInt::get(CE->getContext(), BaseOffset), IntPtrTy,
+                    true));
+          }
         }
       }
       if (FoldedValue) {
