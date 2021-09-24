@@ -966,18 +966,20 @@ Constant *SymbolicallyEvaluateGEP(const GEPOperator *GEP,
 
   // If the base value for this address is a literal integer value, fold the
   // getelementptr to the resulting integer value casted to the pointer type.
-  APInt BasePtr(BitWidth, 0);
+  auto PtrBits = DL.getIntPtrType(ResTy)->getIntegerBitWidth();
+  APInt BasePtr(PtrBits, 0);
   if (auto *CE = dyn_cast<ConstantExpr>(Ptr)) {
     if (CE->getOpcode() == Instruction::IntToPtr) {
       if (auto *Base = dyn_cast<ConstantInt>(CE->getOperand(0)))
-        BasePtr = Base->getValue().zextOrTrunc(BitWidth);
+        BasePtr = Base->getValue().zextOrTrunc(PtrBits);
     }
   }
 
   auto *PTy = cast<PointerType>(Ptr->getType());
   if ((Ptr->isNullValue() || BasePtr != 0) &&
       !DL.isNonIntegralPointerType(PTy)) {
-    Constant *C = ConstantInt::get(Ptr->getContext(), Offset + BasePtr);
+    Constant *C = ConstantInt::get(Ptr->getContext(),
+                                   BasePtr + Offset.sextOrTrunc(PtrBits));
     return ConstantExpr::getIntToPtr(C, ResTy);
   }
 

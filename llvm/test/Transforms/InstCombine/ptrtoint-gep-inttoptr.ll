@@ -14,20 +14,13 @@ declare void @use_ptr(i8 addrspace(1)*)
 
 ; We use various integer sizes that don't match the pointer type
 ; and index size to ensure that we test the ext/trunc cases as well
-; Note: SymbolicallyEvaluateGEP() truncates this to i32 since it converts from
-; getelementptr i8, i8 addrspace(1)* inttoptr (i128 65538 to i8 addrspace(1)*), i256 -1
-; to i8 addrspace(1)* inttoptr (i32 65537 to i8 addrspace(1)*).
-; This does not happen for non-integral pointers since the gep->inttoptr fold is disabled.
 ; FIXME: we need to agree whether index width is equal to pointer address range
 ; or if the datalayout string needs another field for address range, i.e.
 ; "p:128:64:64:32:64" for a 128-bit pointer type with 64-bit address range and 32-bit GEP index.
 
 define i128 @constant_fold_ptrtoint_of_gep_of_inttoptr_ext() {
-; INTEGRAL-LABEL: define {{[^@]+}}@constant_fold_ptrtoint_of_gep_of_inttoptr_ext() {
-; INTEGRAL-NEXT:    ret i128 4294967295
-;
-; NONINTEGRAL-LABEL: define {{[^@]+}}@constant_fold_ptrtoint_of_gep_of_inttoptr_ext() {
-; NONINTEGRAL-NEXT:    ret i128 18446744073709551615
+; ALL-LABEL: define {{[^@]+}}@constant_fold_ptrtoint_of_gep_of_inttoptr_ext() {
+; ALL-NEXT:    ret i128 18446744073709551615
 ;
   %x = inttoptr i16 65535 to i8 addrspace(1)*
   %y = getelementptr i8, i8 addrspace(1)* %x, i128 -65537
