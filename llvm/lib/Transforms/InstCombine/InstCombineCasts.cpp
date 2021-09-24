@@ -2076,11 +2076,21 @@ Instruction *InstCombinerImpl::visitPtrToInt(PtrToIntInst &CI) {
     // While this can increase the number of instructions it doesn't actually
     // increase the overall complexity since the arithmetic is just part of
     // the GEP otherwise.
-    if (GEP->hasOneUse() &&
-        isa<ConstantPointerNull>(GEP->getPointerOperand())) {
-      return replaceInstUsesWith(CI,
-                                 Builder.CreateIntCast(EmitGEPOffset(GEP), Ty,
-                                                       /*isSigned=*/false));
+    if (GEP->hasOneUse()) {
+      Value *BasePtr = GEP->getPointerOperand();
+      if (isa<ConstantPointerNull>(BasePtr))
+        return replaceInstUsesWith(CI,
+                                   Builder.CreateIntCast(EmitGEPOffset(GEP), Ty,
+                                                         /*isSigned=*/false));
+      Value* IntValue = nullptr;
+      if (match(BasePtr, m_IntToPtr(m_Value(IntValue)))) {
+        IntValue = Builder.CreateIntCast(IntValue,
+                                         DL.getIntPtrType(BasePtr->getType()),
+                                         /*isSigned=*/false);
+        Value *Offset =
+            Builder.CreateIntCast(EmitGEPOffset(GEP), Ty, /*isSigned=*/false);
+        return replaceInstUsesWith(CI, Builder.CreateAdd(IntValue, Offset));
+      }
     }
   }
 

@@ -55,9 +55,7 @@ define i128 @fold_ptrtoint_of_gep_of_inttoptr_ext(i16 %arg) {
 ; INSTCOMBINE-LABEL: define {{[^@]+}}@fold_ptrtoint_of_gep_of_inttoptr_ext
 ; INSTCOMBINE-SAME: (i16 [[ARG:%.*]]) {
 ; INSTCOMBINE-NEXT:    [[TMP1:%.*]] = zext i16 [[ARG]] to i64
-; INSTCOMBINE-NEXT:    [[X:%.*]] = inttoptr i64 [[TMP1]] to i8 addrspace(1)*
-; INSTCOMBINE-NEXT:    [[Z:%.*]] = getelementptr i8, i8 addrspace(1)* [[X]], i32 -65536
-; INSTCOMBINE-NEXT:    [[TMP2:%.*]] = ptrtoint i8 addrspace(1)* [[Z]] to i64
+; INSTCOMBINE-NEXT:    [[TMP2:%.*]] = or i64 [[TMP1]], 4294901760
 ; INSTCOMBINE-NEXT:    [[RESULT:%.*]] = zext i64 [[TMP2]] to i128
 ; INSTCOMBINE-NEXT:    ret i128 [[RESULT]]
 ;
@@ -79,12 +77,9 @@ define i16 @fold_ptrtoint_of_gep_of_inttoptr_trunc(i128 %arg) {
 ;
 ; INSTCOMBINE-LABEL: define {{[^@]+}}@fold_ptrtoint_of_gep_of_inttoptr_trunc
 ; INSTCOMBINE-SAME: (i128 [[ARG:%.*]]) {
-; INSTCOMBINE-NEXT:    [[TMP1:%.*]] = trunc i128 [[ARG]] to i64
-; INSTCOMBINE-NEXT:    [[X:%.*]] = inttoptr i64 [[TMP1]] to i8 addrspace(1)*
-; INSTCOMBINE-NEXT:    [[Z:%.*]] = getelementptr i8, i8 addrspace(1)* [[X]], i32 -2
-; INSTCOMBINE-NEXT:    [[TMP2:%.*]] = ptrtoint i8 addrspace(1)* [[Z]] to i64
-; INSTCOMBINE-NEXT:    [[RESULT:%.*]] = trunc i64 [[TMP2]] to i16
-; INSTCOMBINE-NEXT:    ret i16 [[RESULT]]
+; INSTCOMBINE-NEXT:    [[TMP1:%.*]] = trunc i128 [[ARG]] to i16
+; INSTCOMBINE-NEXT:    [[TMP2:%.*]] = add i16 [[TMP1]], -2
+; INSTCOMBINE-NEXT:    ret i16 [[TMP2]]
 ;
   %x = inttoptr i128 %arg to i8 addrspace(1)*
   %y = getelementptr i8, i8 addrspace(1)* %x, i256 -1
@@ -125,5 +120,23 @@ define i16 @fold_ptrtoint_of_inttoptr_trunc(i128 %arg) {
 ;
   %x = inttoptr i128 %arg to i8 addrspace(1)*
   %result = ptrtoint i8 addrspace(1)* %x to i16
+  ret i16 %result
+}
+
+
+define i128 @fold_variable_ptrtoint_of_gep_of_inttoptr_ext(i16 %arg, i128 %idx1, i256 %idx2) {
+; INSTSIMPLIFY-LABEL: define {{[^@]+}}@fold_ptrtoint_of_gep_of_inttoptr_ext
+  %x = inttoptr i16 %arg to i8 addrspace(1)*
+  %y = getelementptr i8, i8 addrspace(1)* %x, i128 %idx1
+  %z = getelementptr i8, i8 addrspace(1)* %y, i256 %idx2
+  %result = ptrtoint i8 addrspace(1)* %z to i128
+  ret i128 %result
+}
+
+define i16 @fold_variable_ptrtoint_of_gep_of_inttoptr_trunc(i128 %arg, i256 %idx1, i128 %idx2) {
+  %x = inttoptr i128 %arg to i8 addrspace(1)*
+  %y = getelementptr i8, i8 addrspace(1)* %x, i256 %idx1
+  %z = getelementptr i8, i8 addrspace(1)* %y, i128 %idx2
+  %result = ptrtoint i8 addrspace(1)* %z to i16
   ret i16 %result
 }
