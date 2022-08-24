@@ -120,6 +120,7 @@ public:
   void markRegsUnavailable(ArrayRef<MCRegister> Regs,
                            const TargetRegisterInfo &TRI) {
     for (MCRegister Reg : Regs) {
+      assert(!TRI.isConstantPhysReg(Reg));
       // Source of copy is no longer available for propagation.
       for (MCRegUnit Unit : TRI.regunits(Reg)) {
         auto CI = Copies.find(Unit);
@@ -132,6 +133,9 @@ public:
   /// Remove register from copy maps.
   void invalidateRegister(MCRegister Reg, const TargetRegisterInfo &TRI,
                           const TargetInstrInfo &TII, bool UseCopyInstr) {
+    // Constant physical registers are never invalidated.
+    if (TRI.isConstantPhysReg(Reg))
+      return;
     // Since Reg might be a subreg of some registers, only invalidate Reg is not
     // enough. We have to find the COPY defines Reg or registers defined by Reg
     // and invalidate all of them. Similarly, we must invalidate all of the
@@ -164,6 +168,8 @@ public:
   /// Clobber a single register, removing it from the tracker's copy maps.
   void clobberRegister(MCRegister Reg, const TargetRegisterInfo &TRI,
                        const TargetInstrInfo &TII, bool UseCopyInstr) {
+    assert(!TRI.isConstantPhysReg(Reg));
+    LLVM_DEBUG(dbgs() << "MCP: clobberRegister: " << printReg(Reg, &TRI) << "\n");
     for (MCRegUnit Unit : TRI.regunits(Reg)) {
       auto I = Copies.find(Unit);
       if (I != Copies.end()) {
@@ -228,9 +234,11 @@ public:
     std::optional<DestSourcePair> CopyOperands =
         isCopyInstr(*MI, TII, UseCopyInstr);
     assert(CopyOperands && "Tracking non-copy?");
+    LLVM_DEBUG(dbgs() << "MCP: tracking copy: " << *MI << "\n");
 
     MCRegister Src = CopyOperands->Source->getReg().asMCReg();
     MCRegister Def = CopyOperands->Destination->getReg().asMCReg();
+    assert(!TRI.isConstantPhysReg(Def));
 
     // Remember Def is defined by the copy.
     for (MCRegUnit Unit : TRI.regunits(Def))
@@ -669,6 +677,7 @@ bool MachineCopyPropagation::hasOverlappingMultipleDef(
 /// Look for available copies whose destination register is used by \p MI and
 /// replace the use in \p MI with the copy's source register.
 void MachineCopyPropagation::forwardUses(MachineInstr &MI) {
+  LLVM_DEBUG(dbgs() << "MCP: forwardUses:  " << MI << "\n");
   if (!Tracker.hasAnyCopies())
     return;
 
@@ -678,6 +687,7 @@ void MachineCopyPropagation::forwardUses(MachineInstr &MI) {
   for (unsigned OpIdx = 0, OpEnd = MI.getNumOperands(); OpIdx < OpEnd;
        ++OpIdx) {
     MachineOperand &MOUse = MI.getOperand(OpIdx);
+    LLVM_DEBUG(dbgs() << "MCP: MOUse:  " << MOUse << "\n");
     // Don't forward into undef use operands since doing so can cause problems
     // with the machine verifier, since it doesn't treat undef reads as reads,
     // so we can end up with a live range that ends on an undef read, leading to
@@ -979,8 +989,15 @@ static bool isBackwardPropagatableCopy(const DestSourcePair &CopyOperands,
   if (!Def || !Src)
     return false;
 
+  LLVM_DEBUG(dbgs() << "MCP: isBackwardPropagatableCopy " << *CopyOperands->Destination << "\n");
+  LLVM_DEBUG(dbgs() << "MCP: isBackwardPropagatableCopy " << *CopyOperands->Source << "\n");
+
+
   if (MRI.isReserved(Def) || MRI.isReserved(Src))
     return false;
+
+  if (MRI.isConstantPhysReg(Src.asMCReg()))
+    return true;
 
   return CopyOperands.Source->isRenamable() && CopyOperands.Source->isKill();
 }
@@ -1473,6 +1490,7 @@ bool MachineCopyPropagation::runOnMachineFunction(MachineFunction &MF) {
   MRI = &MF.getRegInfo();
 
   for (MachineBasicBlock &MBB : MF) {
+    LLVM_DEBUG(dbgs() << "MCP: checking "; MBB.dump());
     if (isSpillageCopyElimEnabled)
       EliminateSpillageCopies(MBB);
     BackwardCopyPropagateBlock(MBB);
