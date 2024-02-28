@@ -74,11 +74,15 @@ set(ASAN_IGNORELIST_FILE "${CMAKE_CURRENT_SOURCE_DIR}/asan_test.ignore")
 set(ASAN_UNITTEST_INSTRUMENTED_CFLAGS
   ${ASAN_UNITTEST_COMMON_CFLAGS}
   -fsanitize=address
-  "-fsanitize-ignorelist=${ASAN_IGNORELIST_FILE}"
 )
-if(NOT MSVC)
-  list(APPEND ASAN_UNITTEST_COMMON_LINK_FLAGS --driver-mode=g++)
+# GCC does not support the -fsanitize-ignorelist= flag.
+if (NOT COMPILER_RT_TEST_COMPILER_ID MATCHES "GNU")
+  list(APPEND ASAN_UNITTEST_INSTRUMENTED_CFLAGS "-fsanitize-ignorelist=${ASAN_IGNORELIST_FILE}")
+  if(NOT MSVC)
+    list(APPEND ASAN_UNITTEST_COMMON_LINK_FLAGS --driver-mode=g++)
+  endif()
 endif()
+
 
 # x86_64 FreeBSD 9.2 additionally requires libc++ to build the tests.
 if(CMAKE_SYSTEM MATCHES "FreeBSD-9.2-RELEASE")
@@ -281,8 +285,12 @@ if(COMPILER_RT_CAN_EXECUTE_TESTS AND NOT ANDROID)
       FOLDER "Compiler-RT Runtime tests")
 
     add_asan_tests(${arch} ${ASAN_TEST_RUNTIME} KIND "-inline")
-    add_asan_tests(${arch} ${ASAN_TEST_RUNTIME} KIND "-calls"
-      CFLAGS -mllvm -asan-instrumentation-with-call-threshold=0)
+    if (COMPILER_RT_TEST_COMPILER_ID MATCHES "Clang")
+      set(_threshold_flag -mllvm -asan-instrumentation-with-call-threshold=0)
+    elseif(COMPILER_RT_TEST_COMPILER_ID MATCHES "GNU")
+      set(_threshold_flag --param=asan-instrumentation-with-call-threshold=0)
+    endif()
+    add_asan_tests(${arch} ${ASAN_TEST_RUNTIME} KIND "-calls" CFLAGS ${_threshold_flag})
   endforeach()
 endif()
 

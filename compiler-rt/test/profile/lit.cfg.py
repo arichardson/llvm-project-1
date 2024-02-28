@@ -177,6 +177,10 @@ if config.host_os in ["AIX"]:
     exclude_unsupported_files_for_aix(config.test_source_root)
     exclude_unsupported_files_for_aix(config.test_source_root + "/Posix")
 
+# The compilation flags used in these tests are not compatible with GCC
+if config.compiler_id == "GNU":
+    config.unsupported = True
+
 if config.target_arch in ["armv7l"]:
     config.unsupported = True
 

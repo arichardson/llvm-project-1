@@ -184,8 +184,8 @@ if test_cc_resource_dir is not None:
 if lit_config.debug:
     lit_config.note(f"Resource dir for {config.clang} is {test_cc_resource_dir}")
 local_build_resource_dir = os.path.realpath(config.compiler_rt_output_dir)
-if test_cc_resource_dir != local_build_resource_dir:
-    if config.test_standalone_build_libs and config.compiler_id == "Clang":
+if test_cc_resource_dir != local_build_resource_dir and config.test_standalone_build_libs:
+    if config.compiler_id == "Clang":
         if lit_config.debug:
             lit_config.note(
                 f"Overriding test compiler resource dir to use "
@@ -203,6 +203,11 @@ if test_cc_resource_dir != local_build_resource_dir:
         config.target_cflags += f" -idirafter {test_cc_resource_dir}/include"
         config.target_cflags += f" -resource-dir={config.compiler_rt_output_dir}"
         config.target_cflags += f" -Wl,-rpath,{config.compiler_rt_libdir}"
+    elif config.compiler_id == "GNU":
+        # GCC does not allow us to override the resource directory, but we can
+        # still set the RPATH to point to the local libraries.
+        config.target_cflags += f" -Wl,-rpath,{config.compiler_rt_libdir}"
+        # config.target_cflags += f" -v -Wl,--verbose"
 
 # Ask the compiler for the path to libraries it is going to use. If this
 # doesn't match config.compiler_rt_libdir then it means we might be testing the
@@ -971,7 +976,7 @@ else:
 push_dynamic_library_lookup_path(config, config.compiler_rt_libdir)
 
 # GCC-ASan uses dynamic runtime by default.
-if config.compiler_id == "GNU":
+if config.compiler_id == "GNU" and not config.test_standalone_build_libs:
     gcc_dir = os.path.dirname(config.clang)
     libasan_dir = os.path.join(gcc_dir, "..", "lib" + config.bits)
     push_dynamic_library_lookup_path(config, libasan_dir)
