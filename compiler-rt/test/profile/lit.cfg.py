@@ -3,6 +3,9 @@
 import os
 import re
 
+from lit.llvm import llvm_config
+from lit.llvm.subst import ToolSubst, FindTool
+
 
 def get_required_attr(config, attr_name):
     attr_value = getattr(config, attr_name, None)
@@ -179,3 +182,9 @@ if config.target_arch in ["armv7l"]:
 
 if config.android:
     config.unsupported = True
+
+for tool in ("llvm-profdata", "llvm-cov"):
+    # add_tool_substitutions searches in config.llvm_tools_dir
+    if not llvm_config.add_tool_substitutions([ToolSubst(tool, unresolved="break")]):
+        lit_config.warning(f"Cannot find {tool}, skipping profile tests")
+        config.unsupported = True
