@@ -1,3 +1,5 @@
+// REQUIRES: MODERN_CLANG
+// Needs 792674400f6f04a074a3827349ed0e2ac10067f6
 // RUN: %clangxx %gmlt -fsanitize=alignment %s -O3 -o %t
 // RUN: %run %t l0 && %run %t s0 && %run %t r0 && %run %t m0 && %run %t f0 && %run %t n0 && %run %t u0
 // RUN: %run %t l1 2>&1 | FileCheck %s --check-prefix=CHECK-LOAD --strict-whitespace

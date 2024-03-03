@@ -4,6 +4,8 @@
 // RUN: %clangxx -fsanitize=signed-integer-overflow -fno-sanitize-recover=signed-integer-overflow -w %s -O3 -o %t.abort
 // RUN: not %run %t.abort 2>&1 | FileCheck %s --check-prefix=ABORT
 
+// REQUIRES: MODERN_CLANG
+
 #include <limits.h>
 #include <stdlib.h>
 

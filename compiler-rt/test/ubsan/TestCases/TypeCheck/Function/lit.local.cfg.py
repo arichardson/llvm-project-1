@@ -6,3 +6,7 @@ if config.target_arch == "powerpc64":
 # Work around "library ... not found: needed by main executable" in qemu.
 if config.android and config.target_arch not in ["x86", "x86_64"]:
     config.unsupported = True
+
+# REQUIRES: MODERN_CLANG
+if config.host_os == "FreeBSD":
+    config.unsupported = True

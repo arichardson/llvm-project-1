@@ -1,3 +1,4 @@
+// REQUIRES: MODERN_CLANG
 // RUN: %clangxx -fsanitize=alignment -fno-sanitize-recover=alignment                           -O0 %s -o %t && not %run %t 2>&1 | FileCheck %s --implicit-check-not=" assumption "
 
 // RUN: rm -f %tmp
