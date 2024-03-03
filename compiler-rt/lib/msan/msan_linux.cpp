@@ -153,6 +153,8 @@ bool InitShadow(bool init_origins) {
         return false;
       if (!ProtectMemoryRange(start, size, kMemoryLayout[i].name))
         return false;
+      if (type == MappingDesc::INVALID && !DontDumpShadowMemory(start, size))
+        return false;
     }
   }
 

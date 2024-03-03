@@ -18,6 +18,8 @@
 #include "sanitizer_procmaps.h"
 #include "sanitizer_stackdepot.h"
 
+#include <sys/mman.h>  // MAP_FAILED
+
 namespace __sanitizer {
 
 #if (SANITIZER_LINUX || SANITIZER_NETBSD) && !SANITIZER_GO
@@ -182,8 +184,10 @@ void ProtectGap(uptr addr, uptr size, uptr zero_base_shadow_start,
   if (!size)
     return;
   void *res = MmapFixedNoAccess(addr, size, "shadow gap");
-  if (addr == (uptr)res)
+  if (addr == (uptr)res) {
+    CHECK(DontDumpShadowMemory(addr, size));
     return;
+  }
   // A few pages at the start of the address space can not be protected.
   // But we really want to protect as much as possible, to prevent this memory
   // being returned as a result of a non-FIXED mmap().
@@ -193,6 +197,8 @@ void ProtectGap(uptr addr, uptr size, uptr zero_base_shadow_start,
       addr += step;
       size -= step;
       void *res = MmapFixedNoAccess(addr, size, "shadow gap");
+      if (res != MAP_FAILED)
+        CHECK(DontDumpShadowMemory(addr, size));
       if (addr == (uptr)res)
         return;
     }
