@@ -50,6 +50,7 @@ else()
 endif()
 
 set(ARM64 aarch64)
+set(MORELLO aarch64c)
 set(ARM32 arm armhf armv4t armv5te armv6 armv6m armv7m armv7em armv7 armv7s armv7k armv8m.base armv8m.main armv8.1m.main)
 set(AVR avr)
 set(HEXAGON hexagon)
@@ -75,7 +76,7 @@ if(APPLE)
 endif()
 
 set(ALL_BUILTIN_SUPPORTED_ARCH
-  ${X86} ${X86_64} ${ARM32} ${ARM64} ${AVR}
+  ${X86} ${X86_64} ${ARM32} ${ARM64} ${MORELLO} ${AVR}
   ${HEXAGON} ${MIPS32} ${MIPS64} ${PPC32} ${PPC64}
   ${RISCV32} ${RISCV64} ${SPARC} ${SPARCV9}
   ${WASM32} ${WASM64} ${VE} ${LOONGARCH64})
